@@ -24,21 +24,16 @@ print(kickstarter1)
 # subset for just failed or success, reduces set to 331675 rows with 15 variables
 # %%
 #add duration of campain (difference between launch date and deadline)
+kickstarter1['launched'] = pd.to_datetime(kickstarter1['launched']).dt.date
 
-kickstarter1['Date'] = kickstarter1['launched'].dt.date
+# Convert 'deadline' to datetime and then to date (date-only)
+kickstarter1['deadline'] = pd.to_datetime(kickstarter1['deadline']).dt.date
 
+# Calculate the duration (difference in days) between deadline and launched
+kickstarter1['Duration'] = (pd.to_datetime(kickstarter1['deadline']) - pd.to_datetime(kickstarter1['launched'])).dt.days
 
-print(kickstarter1.head())
-
-kickstarter1['Date'] = pd.to_datetime(kickstarter1['Date'])
-kickstarter1['deadline'] = pd.to_datetime(kickstarter1['deadline'])
-
-# Calculate duration
-kickstarter1['Duration'] = kickstarter1['deadline'] - kickstarter1['Date']
-
-print(kickstarter1.head())
-
-kickstarter1.info()
+# Display the DataFrame
+print(kickstarter1[['launched', 'deadline', 'Duration']])
 # %%
 
 # change the objects to factors
