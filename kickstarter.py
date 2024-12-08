@@ -7,7 +7,11 @@ import seaborn as sns #optional
 
 #%%
 
+
 kickstarter = pd.read_csv("ks-projects-201801.csv")
+
+kickstarter = pd.read_csv("/Users/rachelthomas/Desktop/GIT 6103/WORKING FILES/6103GROUP4/ks-projects-201801.csv")
+
 
 print("\nReady to continue.")
 # %%
@@ -18,6 +22,8 @@ kickstarter.info()
 
 kickstarter['state'].unique()
 kickstarter['main_category'].unique()
+
+
 
 # %%
 kickstarter1 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
@@ -102,6 +108,7 @@ plt.tight_layout()
 plt.show()
 
 #%%
+
 # Top 5 categories with the highest number of successes:
 top_categories = (
     kickstarter_final[kickstarter_final['state'] == 'successful']
@@ -133,3 +140,4 @@ plt.tight_layout()
 plt.show()
 
 # %%
+
