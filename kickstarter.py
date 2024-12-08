@@ -7,11 +7,7 @@ import seaborn as sns #optional
 
 #%%
 
-
 kickstarter = pd.read_csv("ks-projects-201801.csv")
-
-kickstarter = pd.read_csv("/Users/rachelthomas/Desktop/GIT 6103/WORKING FILES/6103GROUP4/ks-projects-201801.csv")
-
 
 print("\nReady to continue.")
 # %%
@@ -22,8 +18,6 @@ kickstarter.info()
 
 kickstarter['state'].unique()
 kickstarter['main_category'].unique()
-
-
 
 # %%
 kickstarter1 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
@@ -108,7 +102,6 @@ plt.tight_layout()
 plt.show()
 
 #%%
-
 # Top 5 categories with the highest number of successes:
 top_categories = (
     kickstarter_final[kickstarter_final['state'] == 'successful']
@@ -127,10 +120,10 @@ colors = ['lightblue', 'salmon', 'lightgreen', 'wheat', 'violet']
 
 # Plot the top 5 categories with individual bar colors
 top_categories.plot(kind='bar', color=colors, figsize=(10, 6))
-plt.title('Top 5 Categories with the Most Successful Projects')
+plt.title('Top 5 Categories with the Most Successful Projects', fontsize= 14)
 plt.ylabel('Number of Successful Projects')
 plt.xlabel('Main Category')
-plt.xticks(rotation=35, ha='right')
+plt.xticks(rotation=35, ha='right', fontsize = 13)
 
 #Adding the values on to each bar
 for index, value in enumerate(top_categories):
@@ -140,4 +133,3 @@ plt.tight_layout()
 plt.show()
 
 # %%
-
