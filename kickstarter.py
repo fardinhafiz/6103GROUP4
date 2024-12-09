@@ -251,6 +251,7 @@ for l in maxlevels:
 
 # %%
 
+
 from sklearn.linear_model import LogisticRegression
 from statsmodels.formula.api import glm
 from sklearn.metrics import classification_report
@@ -296,3 +297,4 @@ print("\n The model's classification Report:")
 print(classification_report(y_test, y_pred))
 
 # %%
+
