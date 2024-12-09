@@ -1,0 +1,16 @@
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import logit
+
+projects = pd.read_csv("/Users/fardinhafiz/Desktop/ks-projects-201801.csv")
+
+projects = projects[projects['state'].isin(['successful', 'failed'])]
+
+projects = projects.dropna(subset=['main_category', 'pledged', 'backers', 'state'])
+
+projects['state_binary'] = projects['state'].apply(lambda x: 1 if x == 'successful' else 0)
+
+model = logit(formula='state_binary ~ C(main_category) + pledged + backers', data=projects)
+model_fit = model.fit()
+
+print(model_fit.summary())
