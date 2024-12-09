@@ -251,7 +251,6 @@ for l in maxlevels:
 
 # %%
 
-
 from sklearn.linear_model import LogisticRegression
 from statsmodels.formula.api import glm
 from sklearn.metrics import classification_report
@@ -263,7 +262,6 @@ y = (kickstarter_final['state'] == 'successful').astype(int)
 
 # Train-Test Split; 70:30 split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 251)
-
 
 model = LogisticRegression()
 model.fit(X_train, y_train)
@@ -298,3 +296,26 @@ print(classification_report(y_test, y_pred))
 
 # %%
 
+# Creating ROC curve with AUC for logistic model
+from sklearn.metrics import roc_auc_score, roc_curve
+
+y_prob = model.predict_proba(X_test)[:, 1]
+roc_auc = roc_auc_score(y_test, y_prob) # evaluating AUC
+
+print(f"\n The area under the curve is found to be {roc_auc:.3f}.")
+
+fpr, tpr, thresholds = roc_curve(y_test, y_prob)
+plt.plot(fpr, tpr, label=f"AUC = {roc_auc:.3f}")
+
+# Shading the AUC
+plt.fill_between(fpr, tpr, color='skyblue', alpha=0.3)
+
+# Text with AUC value inside the plot
+plt.text(0.4, 0.5, f'AUC = {roc_auc:.3f}', fontsize=12)
+
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.show()
+
+# %%
