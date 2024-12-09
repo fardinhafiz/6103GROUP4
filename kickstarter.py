@@ -250,3 +250,51 @@ for l in maxlevels:
         print(l, c, dt.score(X_testkickstarter, y_testkickstarter))
 
 # %%
+
+
+from sklearn.linear_model import LogisticRegression
+from statsmodels.formula.api import glm
+from sklearn.metrics import classification_report
+
+# Logistic Regression Model
+# Features selected: backers, usd_pledged_real, main_category
+X = pd.get_dummies(kickstarter_final[['backers', 'usd_pledged_real', 'main_category']], drop_first=True)
+y = (kickstarter_final['state'] == 'successful').astype(int) 
+
+# Train-Test Split; 70:30 split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 251)
+
+
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Model Accuracy
+print('Logit model accuracy (test set):', model.score(X_test, y_test))
+print('Logit model accuracy (train set):', model.score(X_train, y_train))
+
+# Coefficients and Odds Ratios for features
+coefficients = pd.DataFrame({
+    'Predictors': X.columns,
+    'Coefficient': model.coef_[0],
+    'Odds Ratio': np.exp(model.coef_[0])
+})
+print("\nCoefficients and Odds Ratios:\n", coefficients)
+
+
+# Predictions and Evaluation
+y_pred = model.predict(X_test)
+
+conf_matrix = confusion_matrix(y_test, y_pred)
+accuracy = accuracy_score(y_test, y_pred)
+
+print("\n The confusion matrix of the model is:")
+print(conf_matrix)
+
+print("\n The accuracy of the model is:")
+print(accuracy)
+
+print("\n The model's classification Report:")
+print(classification_report(y_test, y_pred))
+
+# %%
+
