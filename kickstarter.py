@@ -91,7 +91,6 @@ plt.show()
 
 # %%
 # state by country, currency, and category
-
 grouped_country = kickstarter_final.groupby(['country', 'state']).size().unstack()
 
 grouped_country.plot(kind='bar', stacked=True, figsize=(10, 6), color=['red', 'green'])
@@ -342,4 +341,89 @@ plt.ylabel('True Positive Rate')
 plt.title('ROC Curve')
 plt.show()
 
+# %%
+### logistic model (only US and using goal instead of pledged)
+
+# subset out failed/successful
+kickstarter2 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
+
+#subset out only US projects 
+kickstarter2 = kickstarter2[kickstarter['country'].isin(['US'])]
+
+# Add duration of campaign (difference between launch date and deadline)
+kickstarter2['launched'] = pd.to_datetime(kickstarter2['launched']).dt.date
+kickstarter2['deadline'] = pd.to_datetime(kickstarter2['deadline']).dt.date
+kickstarter2['Duration'] = (pd.to_datetime(kickstarter2['deadline']) - pd.to_datetime(kickstarter2['launched'])).dt.days
+
+# Convert categorical columns to category type
+for col in ['main_category', 'currency', 'state']:
+    kickstarter2[col] = kickstarter2[col].astype('category')
+
+# Create final dataframe with selected columns
+kickstarter_final_US = kickstarter2[['main_category', 'currency', 'state', 'backers', 'Duration', 'usd_goal_real']]
+
+# Add dummy variables for categorical columns
+kickstarter_final_US = pd.get_dummies(kickstarter_final_US, columns=['main_category', 'currency'], drop_first=True)
+
+# split into features and target variables 
+selected_features_us = ["backers", "usd_goal_real", "main_category_Comics", "main_category_Crafts", "main_category_Dance", "main_category_Design", "main_category_Fashion", "main_category_Film & Video", "main_category_Food", "main_category_Games", "main_category_Journalism", "main_category_Music", "main_category_Photography", "main_category_Publishing", "main_category_Technology", "main_category_Theater", "Duration"]
+
+x_us = kickstarter_final_US[selected_features_us]
+y_us = kickstarter_final_US['state']
+
+# Split into training and test sets
+x_us_train, x_us_test, y_us_train, y_us_test = train_test_split(x_us, y_us, test_size=0.2, random_state=42)
+
+# Initialize the logistic regression model
+logreg_us_model = LogisticRegression(max_iter=5000)
+
+logreg_us_model.fit(x_us_train, y_us_train)
+
+# Model Accuracy
+print('Logit model accuracy (train set):', logreg_us_model.score(x_us_train, y_us_train))
+print('Logit model accuracy (test set):', logreg_us_model.score(x_us_test, y_us_test))
+
+coefficients_us = pd.DataFrame({
+    'Predictors': x_us.columns,
+    'Coefficient': logreg_us_model.coef_[0],
+    'Odds Ratio': np.exp(logreg_us_model.coef_[0])
+})
+print("\nCoefficients and Odds Ratios:\n", coefficients_us)
+
+# Predictions and Evaluation
+y_pred_us = logreg_us_model.predict(x_us_test)
+
+conf_matrix_us = confusion_matrix(y_us_test, y_pred_us)
+accuracy_us = accuracy_score(y_us_test, y_pred_us)
+
+print("\n The confusion matrix of the model is:")
+print(conf_matrix_us)
+
+print("\n The accuracy of the model is:")
+print(accuracy_us)
+
+print("\n The model's classification Report:")
+print(classification_report(y_us_test, y_pred_us))
+
+# ROC curve with AUC for logistic model
+y_pred_prob_us = logreg_us_model.predict_proba(x_us_test)[:, 1]
+roc_auc_us = roc_auc_score(y_us_test, y_pred_prob_us) # evaluating AUC
+
+print(f"\n The area under the curve is found to be {roc_auc_us:.3f}.")
+
+y_us_test_mapped = y_us_test.map({'failed': 0, 'successful': 1})
+
+fpr, tpr, thresholds = roc_curve(y_us_test_mapped, y_pred_prob_us)
+plt.plot(fpr, tpr, label=f"AUC = {roc_auc_us:.3f}")
+
+# Shading the AUC
+plt.fill_between(fpr, tpr, color='skyblue', alpha=0.3)
+
+# Text with AUC value inside the plot
+plt.text(0.4, 0.5, f'AUC = {roc_auc_us:.3f}', fontsize=12)
+
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.show()
 # %%
