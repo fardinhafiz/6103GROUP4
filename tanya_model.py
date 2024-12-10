@@ -21,10 +21,6 @@ print(f"Data read in {time.time() - start_time} seconds")
 kickstarter1 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
 print(f"Subset created in {time.time() - start_time} seconds")
 
-# Add new feature of percent of goal reached 
-kickstarter1['percent_funded'] = kickstarter["usd_pledged_real"]/kickstarter['usd_goal_real']
-print(kickstarter1.head())
-
 #%%
 # Add duration of campaign (difference between launch date and deadline)
 kickstarter1['launched'] = pd.to_datetime(kickstarter1['launched']).dt.date
@@ -38,7 +34,7 @@ for col in ['main_category', 'currency', 'state', 'country']:
 print(f"Categorical columns converted in {time.time() - start_time} seconds")
 
 # Create final dataframe with selected columns
-kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'percent_funded', 'Duration', 'usd_goal_real']]
+kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'Duration', 'usd_goal_real']]
 print(f"Final dataframe created in {time.time() - start_time} seconds")
 
 #%% 
@@ -49,7 +45,7 @@ print(f"Final dataframe created in {time.time() - start_time} seconds")
 # kickstarter_final['state'] = kickstarter_final['state'].map({'failed': 0, 'successful': 1})
 
 # Add dummy variables for categorical columns
-kickstarter_final = pd.get_dummies(kickstarter_final, columns=['main_category', 'currency', 'country'])
+kickstarter_final = pd.get_dummies(kickstarter_final, columns=['main_category', 'currency', 'country'], drop_first=True)
 print(f"Dummy variables added in {time.time() - start_time} seconds")
 
 
@@ -72,19 +68,19 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_
 print(f"Training and test sets created in {time.time() - start_time} seconds")
 
 # Initialize the logistic regression model
-model = LogisticRegression(max_iter=1000)
+model = LogisticRegression(max_iter=5000)
 print(f"Logistic regression model initialized in {time.time() - start_time} seconds")
 
 #%%
 # Forward feature selection
 remaining_features = list(X_train.columns)
-selected_features = []
+best_features = []
 best_score = 0
 
 while remaining_features:
     scores_with_candidates = []
     for candidate in remaining_features:
-        candidate_features = selected_features + [candidate]
+        candidate_features = best_features + [candidate]
         model.fit(X_train[candidate_features], y_train)
         y_pred = model.predict(X_test[candidate_features])
         score = accuracy_score(y_test, y_pred)
@@ -94,17 +90,22 @@ while remaining_features:
 
     if best_new_score > best_score:
         remaining_features.remove(best_candidate)
-        selected_features.append(best_candidate)
+        best_features.append(best_candidate)
         best_score = best_new_score
     else:
         break
     print(f"Forward selection: selected {best_candidate} with score {best_new_score} at {time.time() - start_time} seconds")
 
-print(f"Selected features: {selected_features}")
+print(f"Selected features: {best_features}")
 print(f"Best score: {best_score}")
 
+
+#%%
+
+selected_features = ["backers", "usd_goal_real", "main_category_Comics", "main_category_Crafts", "main_category_Dance", "main_category_Design", "main_category_Fashion", "main_category_Film & Video", "main_category_Food", "main_category_Games", "main_category_Journalism", "main_category_Music", "main_category_Photography", "main_category_Publishing", "main_category_Technology", "main_category_Theater", "Duration"]
+
 # Train the final model with selected features
-final_model = LogisticRegression(max_iter=1000)
+final_model = LogisticRegression(max_iter=5000)
 final_model.fit(X_train[selected_features], y_train)
 final_predictions = final_model.predict(X_test[selected_features])
 print(f"Final model trained in {time.time() - start_time} seconds")
