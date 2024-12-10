@@ -76,9 +76,33 @@ plt.pie(
     colors=['red', 'green'])
 plt.title('Distribution of Kickstarter Project Outcomes')
 plt.show()
+
+
+#%% 
+# percent failed vs percent success pie chart
+
+succ_fail_counts = kickstarter_final['state'].value_counts()
+
+# Data for the pie chart
+labels = succ_fail_counts.index
+sizes = succ_fail_counts.values
+
+# Create pie chart
+plt.pie(sizes, labels=labels, colors = ['red', 'green'], autopct='%1.1f%%', startangle=140)
+
+# Equal aspect ratio ensures that pie is drawn as a circle.
+plt.axis('equal')
+
+# Add title
+plt.title('Observations: Success vs Failed')
+
+# Show the plot
+plt.show()
+
+
+
 # %%
 # state by country, currency, and category
-
 
 grouped_country = kickstarter_final.groupby(['country', 'state']).size().unstack()
 
