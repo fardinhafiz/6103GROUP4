@@ -21,6 +21,11 @@ print(f"Data read in {time.time() - start_time} seconds")
 kickstarter1 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
 print(f"Subset created in {time.time() - start_time} seconds")
 
+# Add new feature of percent of goal reached 
+kickstarter1['percent_funded'] = kickstarter["usd_pledged_real"]/kickstarter['usd_goal_real']
+print(kickstarter1.head())
+
+#%%
 # Add duration of campaign (difference between launch date and deadline)
 kickstarter1['launched'] = pd.to_datetime(kickstarter1['launched']).dt.date
 kickstarter1['deadline'] = pd.to_datetime(kickstarter1['deadline']).dt.date
@@ -33,13 +38,30 @@ for col in ['main_category', 'currency', 'state', 'country']:
 print(f"Categorical columns converted in {time.time() - start_time} seconds")
 
 # Create final dataframe with selected columns
-kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'usd_pledged_real', 'usd_goal_real', 'Duration']]
+kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'percent_funded', 'Duration', 'usd_goal_real']]
 print(f"Final dataframe created in {time.time() - start_time} seconds")
+
+#%% 
+
+# # change state to int
+
+# # Map the values
+# kickstarter_final['state'] = kickstarter_final['state'].map({'failed': 0, 'successful': 1})
 
 # Add dummy variables for categorical columns
 kickstarter_final = pd.get_dummies(kickstarter_final, columns=['main_category', 'currency', 'country'])
 print(f"Dummy variables added in {time.time() - start_time} seconds")
 
+
+# corrmatrix = kickstarter_final.corr()
+
+# plt.figure(figsize=(8, 6))
+# sns.heatmap(corrmatrix, annot=False, cmap='coolwarm', linewidths=0.5)
+# plt.title('Correlation Matrix Heatmap')
+# plt.show()
+
+
+#%%
 # Split data into features and target
 X = kickstarter_final.drop(columns=['state'])
 y = kickstarter_final['state']
@@ -53,6 +75,7 @@ print(f"Training and test sets created in {time.time() - start_time} seconds")
 model = LogisticRegression(max_iter=1000)
 print(f"Logistic regression model initialized in {time.time() - start_time} seconds")
 
+#%%
 # Forward feature selection
 remaining_features = list(X_train.columns)
 selected_features = []
@@ -90,3 +113,5 @@ print(f"Final model trained in {time.time() - start_time} seconds")
 final_accuracy = accuracy_score(y_test, final_predictions)
 print(f"Final model accuracy: {final_accuracy}")
 print(f"Script finished in {time.time() - start_time} seconds")
+
+# %%
