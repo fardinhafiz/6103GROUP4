@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns #optional
+import statsmodels.formula.api as smf
 
 #%%
 
@@ -362,6 +363,9 @@ kickstarter2 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
 #subset out only US projects 
 kickstarter2 = kickstarter2[kickstarter['country'].isin(['US'])]
 
+#rename film category 
+kickstarter2['main_category'] = kickstarter2['main_category'].replace({'Film & Video': 'Film_and_Video'})
+
 # Add duration of campaign (difference between launch date and deadline)
 kickstarter2['launched'] = pd.to_datetime(kickstarter2['launched']).dt.date
 kickstarter2['deadline'] = pd.to_datetime(kickstarter2['deadline']).dt.date
@@ -378,7 +382,7 @@ kickstarter_final_US = kickstarter2[['main_category', 'currency', 'state', 'back
 kickstarter_final_US = pd.get_dummies(kickstarter_final_US, columns=['main_category', 'currency'], drop_first=True)
 
 # split into features and target variables 
-selected_features_us = ["backers", "usd_goal_real", "main_category_Comics", "main_category_Crafts", "main_category_Dance", "main_category_Design", "main_category_Fashion", "main_category_Film & Video", "main_category_Food", "main_category_Games", "main_category_Journalism", "main_category_Music", "main_category_Photography", "main_category_Publishing", "main_category_Technology", "main_category_Theater", "Duration"]
+selected_features_us = ["backers", "usd_goal_real", "main_category_Comics", "main_category_Crafts", "main_category_Dance", "main_category_Design", "main_category_Fashion", "main_category_Film_and_Video", "main_category_Food", "main_category_Games", "main_category_Journalism", "main_category_Music", "main_category_Photography", "main_category_Publishing", "main_category_Technology", "main_category_Theater", "Duration"]
 
 x_us = kickstarter_final_US[selected_features_us]
 y_us = kickstarter_final_US['state']
@@ -439,3 +443,33 @@ plt.ylabel('True Positive Rate')
 plt.title('ROC Curve')
 plt.show()
 # %%
+
+kickstarter_final_US['state_binary'] = kickstarter_final_US['state'].map({'failed': 0, 'successful': 1})
+kickstarter_final_US['state_binary'] = kickstarter_final_US['state_binary'].astype(int)
+
+# Split the data into training and testing sets
+train_df_stats, test_df_stats = train_test_split(kickstarter_final_US, test_size=0.2, random_state=42)
+
+# Define the formula for logistic regression
+formula = 'state_binary ~ backers + usd_goal_real + main_category_Comics + main_category_Crafts + main_category_Dance + main_category_Design + main_category_Fashion + main_category_Film_and_Video + main_category_Food + main_category_Games + main_category_Journalism + main_category_Music + main_category_Photography + main_category_Publishing + main_category_Technology + main_category_Theater + Duration'
+
+# Fit the logistic regression model
+stats_model_us = smf.logit(formula, data=train_df_stats).fit()
+
+# Make predictions on the test data
+test_df_stats['predicted'] = stats_model_us.predict(test_df_stats)
+test_df_stats['predicted_class'] = (test_df_stats['predicted'] > 0.5).astype(int)
+
+# Evaluate the model's performance
+accuracy_stats_us = accuracy_score(test_df_stats['state_binary'], test_df_stats['predicted_class'])
+conf_matrix_stats_us = confusion_matrix(test_df_stats['state_binary'], test_df_stats['predicted_class'])
+class_report_stats_us = classification_report(test_df_stats['state_binary'], test_df_stats['predicted_class'])
+
+print(f'Accuracy: {accuracy_stats_us}')
+print('Confusion Matrix:')
+print(conf_matrix_stats_us)
+print('Classification Report:')
+print(class_report_stats_us)
+
+# Display the model summary
+print(stats_model_us.summary())
