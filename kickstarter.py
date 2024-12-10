@@ -126,6 +126,25 @@ top_categories = (
 print("Top 5 Categories with the Highest Number of Successful Projects:")
 print(top_categories)
 
+
+#%%
+# Barplot showing top 5 categories
+colors = ['lightblue', 'salmon', 'lightgreen', 'wheat', 'violet']  
+
+# Plot the top 5 categories with individual bar colors
+top_categories.plot(kind='bar', color=colors, figsize=(10, 6))
+plt.title('Top 5 Categories with the Most Successful Projects', fontsize= 14)
+plt.ylabel('Number of Successful Projects')
+plt.xlabel('Main Category')
+plt.xticks(rotation=35, ha='right', fontsize = 13)
+
+#Adding the values on to each bar
+for index, value in enumerate(top_categories):
+    plt.text(index, value + 100, str(value), ha='center', va='bottom', fontsize=10)
+
+plt.tight_layout()
+plt.show()
+
 #%%
 #success and failure by backers and funding goal
 
@@ -149,25 +168,6 @@ plt.yscale('log')  # Optional: Use log scale if needed
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 plt.legend(title='Goal (USD)', fontsize=12, title_fontsize=14, loc='center')
-plt.tight_layout()
-plt.show()
-
-
-#%%
-# Barplot showing top 5 categories
-colors = ['lightblue', 'salmon', 'lightgreen', 'wheat', 'violet']  
-
-# Plot the top 5 categories with individual bar colors
-top_categories.plot(kind='bar', color=colors, figsize=(10, 6))
-plt.title('Top 5 Categories with the Most Successful Projects', fontsize= 14)
-plt.ylabel('Number of Successful Projects')
-plt.xlabel('Main Category')
-plt.xticks(rotation=35, ha='right', fontsize = 13)
-
-#Adding the values on to each bar
-for index, value in enumerate(top_categories):
-    plt.text(index, value + 100, str(value), ha='center', va='bottom', fontsize=10)
-
 plt.tight_layout()
 plt.show()
 
