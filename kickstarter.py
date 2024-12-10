@@ -60,9 +60,21 @@ print(distribution)
 percentage_distribution = kickstarter_final['state'].value_counts(normalize=True) * 100
 print(percentage_distribution)
 
+plt.figure(figsize=(10, 6))
+plt.subplot(1,2,1)
 kickstarter_final['state'].value_counts().plot(kind='bar', color=['red', 'green'])
 plt.title('Distribution of Success vs Failure')
+plt.xticks(rotation = 0)
 plt.ylabel('Count')
+
+plt.subplot(1,2,2)
+plt.pie(
+    distribution, 
+    labels=distribution.index, 
+    autopct='%1.1f%%', 
+    startangle=90, 
+    colors=['red', 'green'])
+plt.title('Distribution of Kickstarter Project Outcomes')
 plt.show()
 # %%
 # state by country, currency, and category
@@ -71,7 +83,7 @@ plt.show()
 grouped_country = kickstarter_final.groupby(['country', 'state']).size().unstack()
 
 grouped_country.plot(kind='bar', stacked=True, figsize=(10, 6), color=['red', 'green'])
-plt.title('Projects by Category, and Outcome (Stacked)')
+plt.title('Projects by Country, and Outcome (Stacked)')
 plt.ylabel('Count')
 plt.xlabel('Category')
 plt.legend(title='Outcome')
@@ -82,7 +94,7 @@ plt.show()
 grouped_currency = kickstarter_final.groupby(['currency', 'state']).size().unstack()
 
 grouped_currency.plot(kind='bar', stacked=True, figsize=(10, 6), color=['red', 'green'])
-plt.title('Projects by Category, and Outcome (Stacked)')
+plt.title('Projects by Currency, and Outcome (Stacked)')
 plt.ylabel('Count')
 plt.xlabel('Category')
 plt.legend(title='Outcome')
