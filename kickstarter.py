@@ -214,7 +214,6 @@ print(top_categories_percentage)
 #%% 
 # using median goal instead of mean goal
 
-
 # Calculate the total number of projects per category
 total_projects_per_category_all = kickstarter_final.groupby('main_category').size()
 
@@ -258,7 +257,7 @@ plt.tight_layout()
 plt.show()
 
 #%% 
-# top 5 categories percentage (US only )
+# top 5 categories percentage (US only)
 
 us_kickstarter_final = kickstarter_final[kickstarter_final['country'] == 'US']
 
@@ -393,7 +392,6 @@ train_set, test_set = train_test_split(kickstarter_final, train_size=800, random
 #%%
 #fit tree to training data
 
-
 X_trainkickstarter = train_set.drop(columns=['state'])
 y_trainkickstarter = train_set['state']
 
@@ -468,10 +466,9 @@ for l in maxlevels:
 
 # %%
 
-
-
 # Logistic Regression Model
 # Features selected: backers, usd_pledged_real, main_category
+
 X = pd.get_dummies(kickstarter_final[['backers', 'usd_pledged_real', 'main_category']], drop_first=True)
 y = (kickstarter_final['state'] == 'successful').astype(int) 
 
@@ -492,7 +489,6 @@ coefficients = pd.DataFrame({
     'Odds Ratio': np.exp(model.coef_[0])
 })
 print("\nCoefficients and Odds Ratios:\n", coefficients)
-
 
 # Predictions and Evaluation
 y_pred = model.predict(X_test)
@@ -593,7 +589,6 @@ print(f"False Negative Rate (FNR) at threshold 0.3: {new_FNR*100:.2f}%")
 # %%
 
 # Creating ROC curve with AUC for logistic model
-
 
 y_prob = model.predict_proba(X_test)[:, 1]
 roc_auc = roc_auc_score(y_test, y_prob) # evaluating AUC
@@ -734,9 +729,6 @@ print(class_report_stats_us)
 # Display the model summary
 print(stats_model_us.summary())
 
-
-
-
 # Extract the independent variables from the training data
 independent_vars_for_vif = train_df_stats[['backers', 'usd_goal_real', 'main_category_Comics', 'main_category_Crafts', 
                                    'main_category_Dance', 'main_category_Design', 'main_category_Fashion', 
@@ -763,7 +755,6 @@ print(vif_data)
 
 # take sample of dataset and do feature selection
 # fit the model to full dataset
-
 
 # Sample a smaller subset (e.g., 5% of the data) for faster feature selection
 def sample_data(df, frac=0.05, random_state=42):
@@ -820,7 +811,6 @@ print(f'Accuracy: {accuracy_us_select}')
 evaluation_time = time.time() - start_time
 print_timing("Model evaluation time", start_time)
 
-        
 #%% 
 from sklearn.metrics import confusion_matrix, accuracy_score
 # US only tree model 
@@ -834,7 +824,7 @@ y_trainkickstarter_us = train_set_us_tree['state']
 
 X_trainkickstarter_us = pd.get_dummies(X_trainkickstarter_us, drop_first=True)
 
-dtree_kickstarter_us = DecisionTreeClassifier(max_depth = 8, criterion = 'gini', random_state = 1)
+dtree_kickstarter_us = DecisionTreeClassifier(max_depth = 5, criterion = 'gini', random_state = 1)
 
 dtree_kickstarter_us.fit(X_trainkickstarter_us, y_trainkickstarter_us)
 
