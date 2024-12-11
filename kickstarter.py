@@ -195,12 +195,13 @@ plt.ylabel('Percent of Successful Projects (%)')
 plt.xlabel('Main Category')
 plt.xticks(rotation=0, ha='center', fontsize=13)
 
-# Adding the values on to each bar
+# Adding the values onto each bar
 for index, value in enumerate(top_categories_percentage):
-    plt.text(index, value + 0.5, str(value), ha='center', va='bottom', fontsize=10)
+    plt.text(index, value + 0.5, f'{round(value, 2)}%', ha='center', va='bottom', fontsize=10)
 
 plt.tight_layout()
 plt.show()
+
 
 #%%
 #success and failure by backers and funding goal
