@@ -7,24 +7,31 @@ import seaborn as sns #optional
 import statsmodels.formula.api as smf
 
 #%%
+# read in the dataset 
 
 kickstarter = pd.read_csv("ks-projects-201801.csv")
 
 print("\nReady to continue.")
 # %%
-
+# first 5 rows 
 kickstarter.head()
 # %%
+# check datatypes 
 kickstarter.info()
 
+# check unique values for 'state' and 'main_category'
 kickstarter['state'].unique()
 kickstarter['main_category'].unique()
 
 # %%
+
+# subset for just failed or success, reduces set to 331675 rows with 15 variables
+
 kickstarter1 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
 print(kickstarter1)
-# subset for just failed or success, reduces set to 331675 rows with 15 variables
+
 # %%
+
 #add duration of campain (difference between launch date and deadline)
 kickstarter1['launched'] = pd.to_datetime(kickstarter1['launched']).dt.date
 
@@ -39,7 +46,6 @@ print(kickstarter1[['launched', 'deadline', 'Duration']])
 # %%
 
 # change the objects to factors
-
 kickstarter1['main_category'] = kickstarter1['main_category'].astype('category')
 kickstarter1['currency'] = kickstarter1['currency'].astype('category')
 kickstarter1['state'] = kickstarter1['state'].astype('category')
@@ -53,7 +59,7 @@ kickstarter1.info()
 kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'usd_pledged_real', 'usd_goal_real', 'Duration']]
 print(kickstarter_final)
 # %%
-# summary stats (for all countries )
+# summary stats (for all countries)
 # Describe continuous variables
 print(kickstarter_final[['backers', 'usd_goal_real', 'usd_pledged_real', 'Duration']].describe())
 
@@ -100,28 +106,6 @@ plt.pie(
 plt.title('Distribution of Kickstarter Project Outcomes')
 plt.show()
 
-
-#%% 
-# percent failed vs percent success pie chart
-
-succ_fail_counts = kickstarter_final['state'].value_counts()
-
-# Data for the pie chart
-labels = succ_fail_counts.index
-sizes = succ_fail_counts.values
-
-# Create pie chart
-plt.pie(sizes, labels=labels, colors = ['red', 'green'], autopct='%1.1f%%', startangle=140)
-
-# Equal aspect ratio ensures that pie is drawn as a circle.
-plt.axis('equal')
-
-# Add title
-plt.title('Observations: Success vs Failed')
-
-# Show the plot
-plt.show()
-
 #%% 
 # Filter the dataframe for successful and failed projects
 successful_projects = kickstarter_final[kickstarter_final['state'] == "successful"]
@@ -161,7 +145,6 @@ plt.tight_layout()
 # Show the second plot
 plt.show()
 
-
 # %%
 # state by country, currency, and category
 grouped_country = kickstarter_final.groupby(['country', 'state']).size().unstack()
@@ -196,19 +179,6 @@ plt.legend(title='Outcome')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
-
-#%%
-# Top 5 categories with the highest number of successes:
-top_categories = (
-    kickstarter_final[kickstarter_final['state'] == 'successful']
-    .groupby('main_category')
-    .size()
-    .sort_values(ascending=False)
-    .head(5)
-)
-
-print("Top 5 Categories with the Highest Number of Successful Projects:")
-print(top_categories)
 
 #%% 
 # top 5 categories (based on percentage of successful projects in the category)
