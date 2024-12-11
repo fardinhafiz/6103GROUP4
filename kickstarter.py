@@ -477,6 +477,87 @@ print(accuracy)
 print("\n The model's classification Report:")
 print(classification_report(y_test, y_pred))
 
+#%%
+TN, FP, FN, TP = conf_matrix.ravel() #Obtaining values from confusion matrix
+
+# Calculating FPR and FNR
+FPR = FP / (FP + TN)  # False Positive Rate
+FNR = FN / (FN + TP)  # False Negative Rate
+
+print(f"False Positive Rate (FPR): {FPR*100:.2f}%")
+print(f"False Negative Rate (FNR): {FNR*100:.2f}%")
+
+
+#%%
+# Plot the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='viridis', cbar=False, annot_kws={"size": 14}) # add color, size, etc
+plt.title("Confusion Matrix", fontsize = 14)
+plt.xlabel("Predicted", fontsize = 12)
+plt.ylabel("True", fontsize = 12)
+plt.show()
+
+#%%
+from sklearn import metrics
+
+y_prob = model.predict_proba(X_test)[:, 1]  # Probability of positive class
+roc_auc = roc_auc_score(y_test, y_prob)  # AUC score
+
+# Calculate ROC curve
+fpr, tpr, _ = roc_curve(y_test, y_prob)
+
+# Plot the ROC curve
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, label=f"ROC Curve (AUC = {roc_auc:.2f})", color='darkorange', lw=2)
+plt.fill_between(fpr, tpr, color='lightcoral', alpha=0.5)  # Filling in AUC by shading
+plt.plot([0,1],[0,1],color='black', linestyle='--', lw=1, alpha = 0.7)  # Diagonal line
+
+# Customize the plot
+plt.title("Receiver Operating Characteristic (ROC) Curve", fontsize=16)
+plt.xlabel("False Positive Rate", fontsize=12)
+plt.ylabel("True Positive Rate", fontsize=12)
+plt.legend(fontsize=12, loc=[0.5, 0.1])
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.show()
+
+#%%
+
+#New Model, different threshold
+
+threshold = 0.3
+y_pred_adjusted = (y_prob >= threshold).astype(int)
+
+# Confusion Matrix and Metrics with adjusted threshold
+conf_matrix_adjusted = confusion_matrix(y_test, y_pred_adjusted)
+print("\nConfusion Matrix with Threshold 0.3:\n", conf_matrix_adjusted)
+
+accuracy_adjusted = accuracy_score(y_test, y_pred_adjusted)
+print(f"\nAccuracy with Threshold 0.3: {accuracy_adjusted:.2f}")
+
+print("\nClassification Report with Threshold 0.3:")
+print(classification_report(y_test, y_pred_adjusted))
+
+#%%
+#Confusion Matrix with Threshold of 0.3:
+
+# Plot the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix_adjusted, annot=True, fmt='d', cmap='viridis', cbar=False, annot_kws={"size": 14})
+plt.title("Confusion Matrix with threshold 0.3", fontsize = 14)
+plt.xlabel("Predicted", fontsize = 12)
+plt.ylabel("True", fontsize = 12)
+plt.show()
+
+#%%
+new_TN, new_FP, new_FN, new_TP = conf_matrix_adjusted.ravel()
+
+# Calculating new FPR and FNR at threshold = 0.3
+new_FPR = new_FP / (new_FP + new_TN)  # False Positive Rate
+new_FNR = new_FN / (new_FN + new_TP)  # False Negative Rate
+
+print(f"False Positive Rate (FPR) at threshold 0.3: {new_FPR*100:.2f}%")
+print(f"False Negative Rate (FNR) at threshold 0.3: {new_FNR*100:.2f}%")
+
 # %%
 
 # Creating ROC curve with AUC for logistic model
