@@ -53,7 +53,29 @@ kickstarter1.info()
 kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'usd_pledged_real', 'usd_goal_real', 'Duration']]
 print(kickstarter_final)
 # %%
+# summary stats (for all countries )
+# Describe continuous variables
+print(kickstarter_final[['backers', 'usd_goal_real', 'usd_pledged_real', 'Duration']].describe())
 
+# Describe categorical variables
+print(kickstarter_final[['main_category', 'state']].apply(lambda x: x.describe(include='all')).T)
+
+
+#%% 
+# correlation plot for dataframe for all countries 
+# One-hot encode the categorical variables
+kickstarter_final_encoded = pd.get_dummies(kickstarter_final, drop_first=True)
+
+# Calculate the correlation matrix
+kickstarter_final_encoded_corr_matrix = kickstarter_final_encoded.corr()
+
+# Generate a heat map
+plt.figure(figsize=(10, 8))
+sns.heatmap(kickstarter_final_encoded_corr_matrix, annot=False, cmap='coolwarm', linewidths=.5)
+plt.title('Correlation Matrix Heat Map')
+plt.show()
+
+#%%
 # distribution of failed vs success
 
 distribution = kickstarter_final['state'].value_counts()
@@ -138,6 +160,7 @@ plt.tight_layout()
 
 # Show the second plot
 plt.show()
+
 
 # %%
 # state by country, currency, and category
@@ -597,6 +620,31 @@ print(class_report_stats_us)
 
 # Display the model summary
 print(stats_model_us.summary())
+
+
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+# Extract the independent variables from the training data
+independent_vars_for_vif = train_df_stats[['backers', 'usd_goal_real', 'main_category_Comics', 'main_category_Crafts', 
+                                   'main_category_Dance', 'main_category_Design', 'main_category_Fashion', 
+                                   'main_category_Film_and_Video', 'main_category_Food', 'main_category_Games', 
+                                   'main_category_Journalism', 'main_category_Music', 'main_category_Photography', 
+                                   'main_category_Publishing', 'main_category_Technology', 'main_category_Theater', 
+                                   'Duration']]
+
+# Convert boolean variables to integers
+independent_vars_for_vif = independent_vars_for_vif.applymap(lambda x: int(x) if isinstance(x, bool) else x)
+
+# Ensure all data types are numeric
+independent_vars_for_vif = independent_vars_for_vif.apply(pd.to_numeric, errors='coerce')
+
+# Create a DataFrame to store VIF values
+vif_data = pd.DataFrame()
+vif_data['Feature'] = independent_vars_for_vif.columns
+vif_data['VIF'] = [variance_inflation_factor(independent_vars_for_vif.values, i) for i in range(len(independent_vars_for_vif.columns))]
+
+print(vif_data)
+
 
 #%% 
 
