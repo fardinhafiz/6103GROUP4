@@ -906,85 +906,77 @@ for l in maxlevels:
         dt.fit(X_trainkickstarter, y_trainkickstarter)
         print(l, c, dt.score(X_testkickstarter, y_testkickstarter))
         
-#%%
-# try tree without pledge (US only )
+#%% 
+from sklearn.metrics import confusion_matrix, accuracy_score
+# US only tree model 
 
-# create a training set
-
-
-
-train_set, test_set = train_test_split(kickstarter_final_US, train_size=800, random_state=42)
+train_set_us_tree, test_set_us_tree = train_test_split(us_kickstarter_final, test_size=0.2, random_state=42)
 
 #fit tree to training data
 
+X_trainkickstarter_us = train_set_us_tree.drop(columns=['state'])
+y_trainkickstarter_us = train_set_us_tree['state']
 
-X_trainkickstarter = train_set.drop(columns=['state', 'state_binary'])
+X_trainkickstarter_us = pd.get_dummies(X_trainkickstarter_us, drop_first=True)
 
-y_trainkickstarter = train_set['state']
+dtree_kickstarter_us = DecisionTreeClassifier(max_depth = 8, criterion = 'gini', random_state = 1)
 
-X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
+dtree_kickstarter_us.fit(X_trainkickstarter_us, y_trainkickstarter_us)
 
-dtree_kickstarter = DecisionTreeClassifier(max_depth = 5, criterion = 'entropy', random_state = 1)
+y_trainkickstarter_pred_us = dtree_kickstarter_us.predict(X_trainkickstarter_us)
 
-dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
+training_error_rate_kickstarter_us = 1 - accuracy_score(y_trainkickstarter_us, y_trainkickstarter_pred_us)
 
-y_trainkickstarter_pred = dtree_kickstarter.predict(X_trainkickstarter)
+print(f"Training error rate: {training_error_rate_kickstarter_us:.4f}")
 
-
-training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_trainkickstarter_pred)
-
-print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
-
-#plot the tree
-
-
+import matplotlib.pyplot as plt
+from sklearn.tree import plot_tree
 
 plt.figure(figsize=(12,8))
-plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
-plt.title('Decision Tree for Kickstarter Campaign Outcomes')
+plot_tree(dtree_kickstarter_us, feature_names = X_trainkickstarter_us.columns, class_names=dtree_kickstarter_us.classes_, filled=True, rounded=True)
+plt.title('Decision Tree for Kickstarter Campaign Outcomes (US only)')
 plt.show()
 
 n_terminal_nodes = sum(dtree_kickstarter.tree_.children_left == -1)
 print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
 
-
+from sklearn.tree import export_text
 
 # Generate a text summary of the tree
-tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
-print(tree_rules)
+tree_rules_us = export_text(dtree_kickstarter_us, feature_names=X_trainkickstarter_us.columns.tolist())
+print(tree_rules_us)
 
 #predict response on the test data and produce confusion matrix
 
-
-
-X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
+X_testkickstarter_us = pd.get_dummies(test_set_us_tree.drop(columns=['state']), drop_first=True)
 
 # Align test set columns with training set columns
-X_testkickstarter = X_testkickstarter.reindex(columns=X_trainkickstarter.columns, fill_value=0)
+X_testkickstarter_us = X_testkickstarter_us.reindex(columns=X_trainkickstarter_us.columns, fill_value=0)
 
-y_testkickstarter = test_set['state']
+y_testkickstarter_us = test_set_us_tree['state']
 
+y_testkickstarter_pred_us = dtree_kickstarter_us.predict(X_testkickstarter_us)
 
-y_testkickstarter_pred = dtree_kickstarter.predict(X_testkickstarter)
+conf_matrix_us_tree = confusion_matrix(y_testkickstarter_us, y_testkickstarter_pred_us)
 
-conf_matrix = confusion_matrix(y_testkickstarter, y_testkickstarter_pred)
-
-sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter.classes_, yticklabels=dtree_kickstarter.classes_)
+sns.heatmap(conf_matrix_us_tree, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter_us.classes_, yticklabels=dtree_kickstarter_us.classes_)
 plt.xlabel('Predicted')
 plt.ylabel('Actual')
-plt.title('Confusion Matrix for Test Set')
+plt.title('Confusion Matrix for Test Set (US only dtree)')
 plt.show()
 
-test_error_rate = 1 - accuracy_score(y_testkickstarter, y_testkickstarter_pred)
-print(f"Test error rate: {test_error_rate:.4f}")
+test_error_rate_us_tree = 1 - accuracy_score(y_testkickstarter_us, y_testkickstarter_pred_us)
+print(f"Test error rate (US only dtree): {test_error_rate_us_tree:.4f}")
 
 maxlevels = [None, 2, 3, 5, 8]
 crits = ['gini', 'entropy']
 for l in maxlevels:
     for c in crits:
         dt = DecisionTreeClassifier(max_depth = l, criterion = c)
-        dt.fit(X_trainkickstarter, y_trainkickstarter)
-        print(l, c, dt.score(X_testkickstarter, y_testkickstarter))
+        dt.fit(X_trainkickstarter_us, y_trainkickstarter_us)
+        print(l, c, dt.score(X_testkickstarter_us, y_testkickstarter_us))
+
+
 # %%
 # Average % met and shows the inconsistency in the data with the cancelled state
 data = kickstarter[kickstarter['state'].isin(['failed', 'canceled', 'successful'])]
