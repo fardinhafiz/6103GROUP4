@@ -208,26 +208,8 @@ success_percentage = (successful_projects_per_category / total_projects_per_cate
 # Get the top categories with the highest percentage of successful projects
 top_categories_percentage = success_percentage.sort_values(ascending=False).head(5)
 
-print("Top 5 categories with the Highest Percentage of Successful Projects ")
+print("Top 5 categories with the Highest Percentage of Successful Projects (all countries)")
 print(top_categories_percentage)
-
-#%%
-# Barplot showing top 5 categories
-colors = ['lightblue', 'salmon', 'lightgreen', 'wheat', 'violet']  
-
-# Plot the top 5 categories with individual bar colors
-top_categories.plot(kind='bar', color=colors, figsize=(10, 6))
-plt.title('Top 5 Categories with the Most Successful Projects', fontsize= 14)
-plt.ylabel('Number of Successful Projects')
-plt.xlabel('Main Category')
-plt.xticks(rotation=35, ha='right', fontsize = 13)
-
-#Adding the values on to each bar
-for index, value in enumerate(top_categories):
-    plt.text(index, value + 100, str(value), ha='center', va='bottom', fontsize=10)
-
-plt.tight_layout()
-plt.show()
 
 #%% 
 # using median goal instead of mean goal
@@ -257,13 +239,76 @@ colors = plt.cm.coolwarm(norm(median_goal_per_category[sorted_success_percentage
 
 fig, ax = plt.subplots(figsize=(12, 8))
 sorted_success_percentage_all.plot(kind='bar', color=colors, ax=ax)
-plt.title('Percentage of Successful Projects in Each Category', fontsize=14)
+plt.title('Percentage of Successful Projects in Each Category (all countries included)', fontsize=14)
 plt.ylabel('Percent of Successful Projects (%)')
 plt.xlabel('Main Category')
 plt.xticks(rotation=45, ha='right', fontsize=10)
 
 # Adding the values onto each bar
 for index, value in enumerate(sorted_success_percentage_all):
+    ax.text(index, value + 0.5, f'{round(value, 2)}%', ha='center', va='bottom', fontsize=10)
+
+# Create a colorbar
+sm = plt.cm.ScalarMappable(cmap=plt.cm.coolwarm, norm=norm)
+sm.set_array([])
+cbar = plt.colorbar(sm, ax=ax)
+cbar.set_label('Median Goal (USD)')
+
+plt.tight_layout()
+plt.show()
+
+#%% 
+# top 5 categories percentage (US only )
+
+us_kickstarter_final = kickstarter_final[kickstarter_final['country'] == 'US']
+
+total_projects_per_category_us = us_kickstarter_final.groupby('main_category').size()
+successful_projects_per_category_us = us_kickstarter_final[kickstarter_final['state'] == 'successful'].groupby('main_category').size()
+
+# Calculate the percentage of successful projects
+success_percentage_us = (successful_projects_per_category_us / total_projects_per_category_us) * 100
+
+# Get the top categories with the highest percentage of successful projects
+top_categories_percentage_us = success_percentage_us.sort_values(ascending=False).head(5)
+
+print("Top 5 categories with the Highest Percentage of Successful Projects (all countries)")
+print(top_categories_percentage_us)
+
+# using median goal instead of mean goal
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+
+# Calculate the total number of projects per category
+total_projects_us = us_kickstarter_final.groupby('main_category').size()
+
+# Calculate the total number of successful projects per category
+successful_projects_us = us_kickstarter_final[us_kickstarter_final['state'] == 'successful'].groupby('main_category').size()
+
+# Calculate the percentage of successful projects
+successful_projects_us = (successful_projects_us / total_projects_us) * 100
+
+# Sort the categories by their success percentages
+sorted_success_percentage_us = successful_projects_us.sort_values(ascending=False)
+
+print("Percentage of Successful Projects per Category")
+print(sorted_success_percentage_us)
+
+# Median goal per category 
+median_goal_per_category_us = us_kickstarter_final.groupby('main_category')['usd_goal_real'].median()
+
+# Normalize funding goals for color mapping
+norm = mcolors.Normalize(vmin=median_goal_per_category_us.min(), vmax=median_goal_per_category_us.max())
+colors = plt.cm.coolwarm(norm(median_goal_per_category_us[sorted_success_percentage_us.index]))
+
+fig, ax = plt.subplots(figsize=(12, 8))
+sorted_success_percentage_us.plot(kind='bar', color=colors, ax=ax)
+plt.title('Percentage of Successful Projects in Each Category (US only)', fontsize=14)
+plt.ylabel('Percent of Successful Projects (%)')
+plt.xlabel('Main Category')
+plt.xticks(rotation=45, ha='right', fontsize=10)
+
+# Adding the values onto each bar
+for index, value in enumerate(sorted_success_percentage_us):
     ax.text(index, value + 0.5, f'{round(value, 2)}%', ha='center', va='bottom', fontsize=10)
 
 # Create a colorbar
