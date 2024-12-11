@@ -5,6 +5,22 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns #optional
 import statsmodels.formula.api as smf
+from sklearn.model_selection import train_test_split
+import matplotlib.colors as mcolors
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.tree import plot_tree
+from sklearn.tree import export_text
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.linear_model import LogisticRegression
+from statsmodels.formula.api import glm
+from sklearn.metrics import classification_report
+from sklearn.metrics import roc_auc_score, roc_curve
+import time
+from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.tree import export_text
+
 
 #%%
 
@@ -245,8 +261,7 @@ plt.show()
 
 #%% 
 # using median goal instead of mean goal
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
+
 
 # Calculate the total number of projects per category
 total_projects_per_category_all = kickstarter_final.groupby('main_category').size()
@@ -317,7 +332,7 @@ plt.tight_layout()
 plt.show()
 
 #%% 
-import matplotlib.pyplot as plt
+
 
 # Separate the data based on state
 successful_goals = kickstarter_final[kickstarter_final['state'] == 'successful']['usd_goal_real']
@@ -340,19 +355,31 @@ plt.ylabel('Frequency')
 plt.title('Histogram of Goal Amounts for Failed Projects')
 plt.show()
 
+#%%
 
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=kickstarter_final, x='usd_goal_real', y='backers', hue='state', palette='viridis', alpha=0.7)
+
+# Customizing the plot
+plt.title('Scatterplot of Backers vs Goal Colored by State')
+plt.xlabel('Goal (use_goal_real)')
+plt.ylabel('Backers')
+plt.legend(title='State', loc='upper right')
+plt.grid(True)
+
+# Show the plot
+plt.show()
 
 # %%
 # create a training set
 
-from sklearn.model_selection import train_test_split
+
 
 train_set, test_set = train_test_split(kickstarter_final, train_size=800, random_state=42)
 
 #%%
 #fit tree to training data
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
+
 
 X_trainkickstarter = train_set.drop(columns=['state'])
 y_trainkickstarter = train_set['state']
@@ -370,12 +397,13 @@ training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_train
 
 print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
 
+# this is overfit
 #%%
 
 #plot the tree
 
-import matplotlib.pyplot as plt
-from sklearn.tree import plot_tree
+
+
 
 plt.figure(figsize=(12,8))
 plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
@@ -387,7 +415,7 @@ print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
 
 #%%
 
-from sklearn.tree import export_text
+
 
 # Generate a text summary of the tree
 tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
@@ -397,9 +425,7 @@ print(tree_rules)
 
 #predict response on the test data and produce confusion matrix
 
-from sklearn.metrics import confusion_matrix, accuracy_score
-import seaborn as sns
-import matplotlib.pyplot as plt
+
 
 X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
 
@@ -434,9 +460,7 @@ for l in maxlevels:
 
 # %%
 
-from sklearn.linear_model import LogisticRegression
-from statsmodels.formula.api import glm
-from sklearn.metrics import classification_report
+
 
 # Logistic Regression Model
 # Features selected: backers, usd_pledged_real, main_category
@@ -561,7 +585,7 @@ print(f"False Negative Rate (FNR) at threshold 0.3: {new_FNR*100:.2f}%")
 # %%
 
 # Creating ROC curve with AUC for logistic model
-from sklearn.metrics import roc_auc_score, roc_curve
+
 
 y_prob = model.predict_proba(X_test)[:, 1]
 roc_auc = roc_auc_score(y_test, y_prob) # evaluating AUC
@@ -703,7 +727,7 @@ print(class_report_stats_us)
 print(stats_model_us.summary())
 
 
-from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 
 # Extract the independent variables from the training data
 independent_vars_for_vif = train_df_stats[['backers', 'usd_goal_real', 'main_category_Comics', 'main_category_Crafts', 
@@ -726,16 +750,12 @@ vif_data['VIF'] = [variance_inflation_factor(independent_vars_for_vif.values, i)
 
 print(vif_data)
 
-
+# VIF for duration is >5
 #%% 
 
 # take sample of dataset and do feature selection
 # fit the model to full dataset
-import time
-from mlxtend.feature_selection import SequentialFeatureSelector as SFS
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
+
 
 # Sample a smaller subset (e.g., 5% of the data) for faster feature selection
 def sample_data(df, frac=0.05, random_state=42):
@@ -797,14 +817,11 @@ print_timing("Model evaluation time", start_time)
 
 # create a training set
 
-from sklearn.model_selection import train_test_split
 
 train_set, test_set = train_test_split(kickstarter_final, train_size=800, random_state=42)
 
 #fit tree to training data
-from sklearn.tree import DecisionTreeClassifier
 
-from sklearn.metrics import accuracy_score
 
 X_trainkickstarter = train_set.drop(columns=['state', 'usd_pledged_real'])
 
@@ -825,8 +842,7 @@ print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
 
 #plot the tree
 
-import matplotlib.pyplot as plt
-from sklearn.tree import plot_tree
+
 
 plt.figure(figsize=(12,8))
 plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
@@ -836,7 +852,7 @@ plt.show()
 n_terminal_nodes = sum(dtree_kickstarter.tree_.children_left == -1)
 print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
 
-from sklearn.tree import export_text
+
 
 # Generate a text summary of the tree
 tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
@@ -844,9 +860,7 @@ print(tree_rules)
 
 #predict response on the test data and produce confusion matrix
 
-from sklearn.metrics import confusion_matrix, accuracy_score
-import seaborn as sns
-import matplotlib.pyplot as plt
+
 
 X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
 
@@ -882,14 +896,12 @@ for l in maxlevels:
 
 # create a training set
 
-from sklearn.model_selection import train_test_split
+
 
 train_set, test_set = train_test_split(kickstarter_final_US, train_size=800, random_state=42)
 
 #fit tree to training data
-from sklearn.tree import DecisionTreeClassifier
 
-from sklearn.metrics import accuracy_score
 
 X_trainkickstarter = train_set.drop(columns=['state', 'state_binary'])
 
@@ -910,8 +922,7 @@ print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
 
 #plot the tree
 
-import matplotlib.pyplot as plt
-from sklearn.tree import plot_tree
+
 
 plt.figure(figsize=(12,8))
 plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
@@ -921,7 +932,7 @@ plt.show()
 n_terminal_nodes = sum(dtree_kickstarter.tree_.children_left == -1)
 print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
 
-from sklearn.tree import export_text
+
 
 # Generate a text summary of the tree
 tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
@@ -929,9 +940,7 @@ print(tree_rules)
 
 #predict response on the test data and produce confusion matrix
 
-from sklearn.metrics import confusion_matrix, accuracy_score
-import seaborn as sns
-import matplotlib.pyplot as plt
+
 
 X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
 
