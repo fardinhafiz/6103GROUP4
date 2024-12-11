@@ -1002,19 +1002,15 @@ data_clean = data[~((data['state'] == 'canceled') & (data['usd_pledged_real'] > 
 
 data_clean['percentage_met'] = (data_clean['usd_pledged_real'] / data_clean['usd_goal_real']) * 100
 
-data_clean['percentage_met_capped'] = data_clean.apply(
-    lambda row: min(row['percentage_met'], 300) if row['state'] in ['failed', 'canceled'] else row['percentage_met'], axis=1
-)
-
-goal_met_percentage = data_clean.groupby('state')['percentage_met_capped'].mean().reset_index()
+goal_met_percentage = data_clean.groupby('state')['percentage_met'].mean().reset_index()
 
 plt.figure(figsize=(8, 6))
-plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met_capped'], color=['red', 'orange', 'green'])
-plt.title('Average Percentage of Goals Met by State (Cap Removed for Successful)')
+plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met'], color=['red', 'orange', 'green'])
+plt.title('Average Percentage of Goals Met by State')
 plt.ylabel('Average Percentage of Goal Met (%)')
 plt.xlabel('Project State')
-plt.ylim(0, max(goal_met_percentage['percentage_met_capped']) + 20)  
-for index, value in enumerate(goal_met_percentage['percentage_met_capped']):
+plt.ylim(0, max(goal_met_percentage['percentage_met']) + 20)  
+for index, value in enumerate(goal_met_percentage['percentage_met']):
     plt.text(index, value + 2, f"{value:.2f}%", ha='center')  
 plt.show()
 
