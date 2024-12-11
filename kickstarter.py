@@ -184,19 +184,20 @@ plt.tight_layout()
 plt.show()
 
 #%%
+
 # Barplot showing top 5 categories by percentage of successful projects
 colors = ['lightblue', 'salmon', 'lightgreen', 'wheat', 'violet']  
 
 # Plot the top 5 categories with individual bar colors
 top_categories_percentage.plot(kind='bar', color=colors, figsize=(10, 6))
-plt.title('Top 5 Categories with Highest Percentage of Successful Projects', fontsize= 14)
+plt.title('Top 5 Categories with Highest Percentage of Successful Projects', fontsize=14)
 plt.ylabel('Percent of Successful Projects (%)')
 plt.xlabel('Main Category')
-plt.xticks(rotation=0, ha='center', fontsize = 13)
+plt.xticks(rotation=0, ha='center', fontsize=13)
 
-#Adding the values on to each bar
+# Adding the values on to each bar
 for index, value in enumerate(top_categories_percentage):
-    plt.text(index, value + 100, str(value), ha='center', va='bottom', fontsize=10)
+    plt.text(index, value + 0.5, str(value), ha='center', va='bottom', fontsize=10)
 
 plt.tight_layout()
 plt.show()
