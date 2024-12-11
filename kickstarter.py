@@ -999,19 +999,20 @@ print(f"Number of logically inconsistent 'canceled' rows removed: {num_removed_c
 print(f"Number of 'canceled' rows kept: {num_kept_canceled}")
 
 data_clean = data[~((data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real']))]
-
 data_clean['percentage_met'] = (data_clean['usd_pledged_real'] / data_clean['usd_goal_real']) * 100
 
-goal_met_percentage = data_clean.groupby('state')['percentage_met'].mean().reset_index()
+data_filtered = data_clean[data_clean['state'].isin(['failed', 'successful'])]
+
+goal_met_percentage = data_filtered.groupby('state')['percentage_met'].mean().reset_index()
 
 plt.figure(figsize=(8, 6))
-plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met'], color=['red', 'orange', 'green'])
-plt.title('Average Percentage of Goals Met by State')
+plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met'], color=['red', 'green'])
+plt.title('Average Percentage of Goals Met by State (Failed vs Successful)')
 plt.ylabel('Average Percentage of Goal Met (%)')
 plt.xlabel('Project State')
-plt.ylim(0, max(goal_met_percentage['percentage_met']) + 20)  
+plt.ylim(0, max(goal_met_percentage['percentage_met']) + 20)
 for index, value in enumerate(goal_met_percentage['percentage_met']):
-    plt.text(index, value + 2, f"{value:.2f}%", ha='center')  
+    plt.text(index, value + 2, f"{value:.2f}%", ha='center')
 plt.show()
 
 plt.figure(figsize=(6, 6))
@@ -1021,17 +1022,9 @@ plt.pie([num_removed_canceled, num_kept_canceled],
 plt.title('Breakdown of Removed vs. Kept Canceled Rows')
 plt.show()
 
-# "Whale" donors
-successful_one_backer = kickstarter[(kickstarter['state'] == 'successful') & (data['backers'] == 1)]
-num_projects = successful_one_backer.shape[0]
-print(f"Number of successful projects with exactly 1 backer: {num_projects}")
-
-average_amount = successful_one_backer['usd_pledged_real'].mean()
-print(f"Average amount pledged for successful projects with exactly 1 backer: ${average_amount:.2f}")
-
-# Campaigns that don't get off the ground 
+# Zero backers
 zero_backers_count = kickstarter[kickstarter['backers'] == 0].shape[0]
-one_or_more_backers_count = data[kickstarter['backers'] >= 1].shape[0]
+one_or_more_backers_count = kickstarter[kickstarter['backers'] >= 1].shape[0]
 
 labels = ['Zero Backers', '1+ Backers']
 sizes = [zero_backers_count, one_or_more_backers_count]
