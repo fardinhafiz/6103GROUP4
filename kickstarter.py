@@ -150,6 +150,20 @@ top_categories = (
 print("Top 5 Categories with the Highest Number of Successful Projects:")
 print(top_categories)
 
+#%% 
+# top 5 categories (based on percentage of successful projects in the category)
+
+total_projects_per_category = kickstarter_final.groupby('main_category').size()
+successful_projects_per_category = kickstarter_final[kickstarter_final['state'] == 'successful'].groupby('main_category').size()
+
+# Calculate the percentage of successful projects
+success_percentage = (successful_projects_per_category / total_projects_per_category) * 100
+
+# Get the top categories with the highest percentage of successful projects
+top_categories_percentage = success_percentage.sort_values(ascending=False).head(5)
+
+print("Top 5 categories with the Highest Percentage of Successful Projects ")
+print(top_categories_percentage)
 
 #%%
 # Barplot showing top 5 categories
@@ -164,6 +178,24 @@ plt.xticks(rotation=35, ha='right', fontsize = 13)
 
 #Adding the values on to each bar
 for index, value in enumerate(top_categories):
+    plt.text(index, value + 100, str(value), ha='center', va='bottom', fontsize=10)
+
+plt.tight_layout()
+plt.show()
+
+#%%
+# Barplot showing top 5 categories by percentage of successful projects
+colors = ['lightblue', 'salmon', 'lightgreen', 'wheat', 'violet']  
+
+# Plot the top 5 categories with individual bar colors
+top_categories_percentage.plot(kind='bar', color=colors, figsize=(10, 6))
+plt.title('Top 5 Categories with Highest Percentage of Successful Projects', fontsize= 14)
+plt.ylabel('Percent of Successful Projects (%)')
+plt.xlabel('Main Category')
+plt.xticks(rotation=0, ha='center', fontsize = 13)
+
+#Adding the values on to each bar
+for index, value in enumerate(top_categories_percentage):
     plt.text(index, value + 100, str(value), ha='center', va='bottom', fontsize=10)
 
 plt.tight_layout()
@@ -213,11 +245,10 @@ plt.show()
 
 # Plot histogram for failed goals
 plt.figure(figsize=(12, 6))
-plt.hist(failed_goals, bins = 5000000, alpha=0.7, color='red')
+plt.hist(failed_goals, alpha=0.7, color='red')
 plt.xlabel('Goal Amount (USD)')
 plt.ylabel('Frequency')
 plt.title('Histogram of Goal Amounts for Failed Projects')
-plt.xlim(0, 20000)
 plt.show()
 
 
