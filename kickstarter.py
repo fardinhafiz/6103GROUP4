@@ -100,7 +100,44 @@ plt.title('Observations: Success vs Failed')
 # Show the plot
 plt.show()
 
+#%% 
+# Filter the dataframe for successful and failed projects
+successful_projects = kickstarter_final[kickstarter_final['state'] == "successful"]
+failed_projects = kickstarter_final[kickstarter_final['state'] == "failed"]
 
+# Create the scatter plot for successful projects
+plt.figure(figsize=(12, 8))
+sns.scatterplot(data=successful_projects, 
+                x='usd_goal_real', 
+                y='backers', 
+                hue='main_category', 
+                palette='Set2')
+plt.title('Successful Kickstarter Projects: Goal Amount vs. Number of Backers by Main Category')
+plt.xlabel('Goal Amount in USD')
+plt.ylabel('Number of Backers')
+plt.legend(title='Main Category', bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.grid(True)
+plt.tight_layout()
+
+# Show the first plot
+plt.show()
+
+# Create the scatter plot for failed projects
+plt.figure(figsize=(12, 8))
+sns.scatterplot(data=failed_projects, 
+                x='usd_goal_real', 
+                y='backers', 
+                hue='main_category', 
+                palette='Set2')
+plt.title('Failed Kickstarter Projects: Goal Amount vs. Number of Backers by Main Category')
+plt.xlabel('Goal Amount in USD')
+plt.ylabel('Number of Backers')
+plt.legend(title='Main Category', bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.grid(True)
+plt.tight_layout()
+
+# Show the second plot
+plt.show()
 
 # %%
 # state by country, currency, and category
@@ -183,27 +220,10 @@ for index, value in enumerate(top_categories):
 plt.tight_layout()
 plt.show()
 
-#%%
-
-# Barplot showing top 5 categories by percentage of successful projects
-colors = ['lightblue', 'salmon', 'lightgreen', 'wheat', 'violet']  
-
-# Plot the top 5 categories with individual bar colors
-top_categories_percentage.plot(kind='bar', color=colors, figsize=(10, 6))
-plt.title('Top 5 Categories with Highest Percentage of Successful Projects', fontsize=14)
-plt.ylabel('Percent of Successful Projects (%)')
-plt.xlabel('Main Category')
-plt.xticks(rotation=0, ha='center', fontsize=13)
-
-# Adding the values onto each bar
-for index, value in enumerate(top_categories_percentage):
-    plt.text(index, value + 0.5, f'{round(value, 2)}%', ha='center', va='bottom', fontsize=10)
-
-plt.tight_layout()
-plt.show()
-
-#%%
+#%% 
+# using median goal instead of mean goal
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 
 # Calculate the total number of projects per category
 total_projects_per_category_all = kickstarter_final.groupby('main_category').size()
@@ -220,12 +240,12 @@ sorted_success_percentage_all = success_percentage_all.sort_values(ascending=Fal
 print("Percentage of Successful Projects per Category")
 print(sorted_success_percentage_all)
 
-# Average goal per category 
-avg_goal_per_category = kickstarter_final.groupby('main_category')['usd_goal_real'].mean()
+# Median goal per category 
+median_goal_per_category = kickstarter_final.groupby('main_category')['usd_goal_real'].median()
 
 # Normalize funding goals for color mapping
-norm = mcolors.Normalize(vmin=avg_goal_per_category.min(), vmax=avg_goal_per_category.max())
-colors = plt.cm.coolwarm(norm(avg_goal_per_category[sorted_success_percentage_all.index]))
+norm = mcolors.Normalize(vmin=median_goal_per_category.min(), vmax=median_goal_per_category.max())
+colors = plt.cm.coolwarm(norm(median_goal_per_category[sorted_success_percentage_all.index]))
 
 fig, ax = plt.subplots(figsize=(12, 8))
 sorted_success_percentage_all.plot(kind='bar', color=colors, ax=ax)
@@ -242,11 +262,10 @@ for index, value in enumerate(sorted_success_percentage_all):
 sm = plt.cm.ScalarMappable(cmap=plt.cm.coolwarm, norm=norm)
 sm.set_array([])
 cbar = plt.colorbar(sm, ax=ax)
-cbar.set_label('Average Goal (USD)')
+cbar.set_label('Median Goal (USD)')
 
 plt.tight_layout()
 plt.show()
-
 
 #%%
 #success and failure by backers and funding goal
