@@ -202,6 +202,51 @@ for index, value in enumerate(top_categories_percentage):
 plt.tight_layout()
 plt.show()
 
+#%%
+import matplotlib.colors as mcolors
+
+# Calculate the total number of projects per category
+total_projects_per_category_all = kickstarter_final.groupby('main_category').size()
+
+# Calculate the total number of successful projects per category
+successful_projects_per_category_all = kickstarter_final[kickstarter_final['state'] == 'successful'].groupby('main_category').size()
+
+# Calculate the percentage of successful projects
+success_percentage_all = (successful_projects_per_category_all / total_projects_per_category_all) * 100
+
+# Sort the categories by their success percentages
+sorted_success_percentage_all = success_percentage_all.sort_values(ascending=False)
+
+print("Percentage of Successful Projects per Category")
+print(sorted_success_percentage_all)
+
+# Average goal per category 
+avg_goal_per_category = kickstarter_final.groupby('main_category')['usd_goal_real'].mean()
+
+# Normalize funding goals for color mapping
+norm = mcolors.Normalize(vmin=avg_goal_per_category.min(), vmax=avg_goal_per_category.max())
+colors = plt.cm.coolwarm(norm(avg_goal_per_category[sorted_success_percentage_all.index]))
+
+fig, ax = plt.subplots(figsize=(12, 8))
+sorted_success_percentage_all.plot(kind='bar', color=colors, ax=ax)
+plt.title('Percentage of Successful Projects in Each Category', fontsize=14)
+plt.ylabel('Percent of Successful Projects (%)')
+plt.xlabel('Main Category')
+plt.xticks(rotation=45, ha='right', fontsize=10)
+
+# Adding the values onto each bar
+for index, value in enumerate(sorted_success_percentage_all):
+    ax.text(index, value + 0.5, f'{round(value, 2)}%', ha='center', va='bottom', fontsize=10)
+
+# Create a colorbar
+sm = plt.cm.ScalarMappable(cmap=plt.cm.coolwarm, norm=norm)
+sm.set_array([])
+cbar = plt.colorbar(sm, ax=ax)
+cbar.set_label('Average Goal (USD)')
+
+plt.tight_layout()
+plt.show()
+
 
 #%%
 #success and failure by backers and funding goal
