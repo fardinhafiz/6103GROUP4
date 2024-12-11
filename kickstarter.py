@@ -833,7 +833,7 @@ goal_met_percentage = data_filtered.groupby('state')['percentage_met'].mean().re
 
 plt.figure(figsize=(8, 6))
 plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met'], color=['red', 'green'])
-plt.title('Average Percentage of Goals Met by State (Failed vs Successful)')
+plt.title('Average Percentange Met of Desired Goal')
 plt.ylabel('Average Percentage of Goal Met (%)')
 plt.xlabel('Project State')
 plt.ylim(0, max(goal_met_percentage['percentage_met']) + 20)
