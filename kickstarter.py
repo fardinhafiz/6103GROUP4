@@ -1021,10 +1021,23 @@ plt.pie([num_removed_canceled, num_kept_canceled],
 plt.title('Breakdown of Removed vs. Kept Canceled Rows')
 plt.show()
 
-# "Whale" doners
+# "Whale" donors
 successful_one_backer = kickstarter[(kickstarter['state'] == 'successful') & (data['backers'] == 1)]
 num_projects = successful_one_backer.shape[0]
 print(f"Number of successful projects with exactly 1 backer: {num_projects}")
 
 average_amount = successful_one_backer['usd_pledged_real'].mean()
 print(f"Average amount pledged for successful projects with exactly 1 backer: ${average_amount:.2f}")
+
+# Campaigns that don't get off the ground 
+zero_backers_count = kickstarter[kickstarter['backers'] == 0].shape[0]
+one_or_more_backers_count = data[kickstarter['backers'] >= 1].shape[0]
+
+labels = ['Zero Backers', '1+ Backers']
+sizes = [zero_backers_count, one_or_more_backers_count]
+colors = ['red', 'green']
+
+plt.figure(figsize=(6, 6))
+plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
+plt.title('Distribution of Projects: Zero Backers vs 1+ Backers')
+plt.show()
