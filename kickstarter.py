@@ -986,4 +986,42 @@ for l in maxlevels:
         dt.fit(X_trainkickstarter, y_trainkickstarter)
         print(l, c, dt.score(X_testkickstarter, y_testkickstarter))
 # %%
+# Average % met and shows the inconsistency in the data with the cancelled state
+data = kickstarter[kickstarter['state'].isin(['failed', 'canceled', 'successful'])]
+
+canceled_inconsistent = data[(data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real'])]
+num_removed_canceled = canceled_inconsistent.shape[0]
+
+total_canceled = data[data['state'] == 'canceled'].shape[0]
+num_kept_canceled = total_canceled - num_removed_canceled
+
+print(f"Number of logically inconsistent 'canceled' rows removed: {num_removed_canceled}")
+print(f"Number of 'canceled' rows kept: {num_kept_canceled}")
+
+data_clean = data[~((data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real']))]
+
+data_clean['percentage_met'] = (data_clean['usd_pledged_real'] / data_clean['usd_goal_real']) * 100
+
+data_clean['percentage_met_capped'] = data_clean.apply(
+    lambda row: min(row['percentage_met'], 300) if row['state'] in ['failed', 'canceled'] else row['percentage_met'], axis=1
+)
+
+goal_met_percentage = data_clean.groupby('state')['percentage_met_capped'].mean().reset_index()
+
+plt.figure(figsize=(8, 6))
+plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met_capped'], color=['red', 'orange', 'green'])
+plt.title('Average Percentage of Goals Met by State (Cap Removed for Successful)')
+plt.ylabel('Average Percentage of Goal Met (%)')
+plt.xlabel('Project State')
+plt.ylim(0, max(goal_met_percentage['percentage_met_capped']) + 20)  
+for index, value in enumerate(goal_met_percentage['percentage_met_capped']):
+    plt.text(index, value + 2, f"{value:.2f}%", ha='center')  
+plt.show()
+
+plt.figure(figsize=(6, 6))
+plt.pie([num_removed_canceled, num_kept_canceled],
+        labels=['Removed Canceled Rows', 'Kept Canceled Rows'],
+        autopct='%1.1f%%', startangle=90, colors=['red', 'orange'])
+plt.title('Breakdown of Removed vs. Kept Canceled Rows')
+plt.show()
 
