@@ -1021,3 +1021,10 @@ plt.pie([num_removed_canceled, num_kept_canceled],
 plt.title('Breakdown of Removed vs. Kept Canceled Rows')
 plt.show()
 
+# "Whale" doners
+successful_one_backer = kickstarter[(kickstarter['state'] == 'successful') & (data['backers'] == 1)]
+num_projects = successful_one_backer.shape[0]
+print(f"Number of successful projects with exactly 1 backer: {num_projects}")
+
+average_amount = successful_one_backer['usd_pledged_real'].mean()
+print(f"Average amount pledged for successful projects with exactly 1 backer: ${average_amount:.2f}")
