@@ -388,8 +388,6 @@ plt.show()
 # %%
 # create a training set
 
-
-
 train_set, test_set = train_test_split(kickstarter_final, train_size=800, random_state=42)
 
 #%%
@@ -417,9 +415,6 @@ print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
 
 #plot the tree
 
-
-
-
 plt.figure(figsize=(12,8))
 plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
 plt.title('Decision Tree for Kickstarter Campaign Outcomes')
@@ -429,8 +424,6 @@ n_terminal_nodes = sum(dtree_kickstarter.tree_.children_left == -1)
 print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
 
 #%%
-
-
 
 # Generate a text summary of the tree
 tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
@@ -827,84 +820,6 @@ print(f'Accuracy: {accuracy_us_select}')
 evaluation_time = time.time() - start_time
 print_timing("Model evaluation time", start_time)
 
-#%%
-# try tree without pledge 
-
-# create a training set
-
-
-train_set, test_set = train_test_split(kickstarter_final, train_size=800, random_state=42)
-
-#fit tree to training data
-
-
-X_trainkickstarter = train_set.drop(columns=['state', 'usd_pledged_real'])
-
-y_trainkickstarter = train_set['state']
-
-X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
-
-dtree_kickstarter = DecisionTreeClassifier(max_depth = 5, criterion = 'entropy', random_state = 1)
-
-dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
-
-y_trainkickstarter_pred = dtree_kickstarter.predict(X_trainkickstarter)
-
-
-training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_trainkickstarter_pred)
-
-print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
-
-#plot the tree
-
-
-
-plt.figure(figsize=(12,8))
-plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
-plt.title('Decision Tree for Kickstarter Campaign Outcomes')
-plt.show()
-
-n_terminal_nodes = sum(dtree_kickstarter.tree_.children_left == -1)
-print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
-
-
-
-# Generate a text summary of the tree
-tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
-print(tree_rules)
-
-#predict response on the test data and produce confusion matrix
-
-
-
-X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
-
-# Align test set columns with training set columns
-X_testkickstarter = X_testkickstarter.reindex(columns=X_trainkickstarter.columns, fill_value=0)
-
-y_testkickstarter = test_set['state']
-
-
-y_testkickstarter_pred = dtree_kickstarter.predict(X_testkickstarter)
-
-conf_matrix = confusion_matrix(y_testkickstarter, y_testkickstarter_pred)
-
-sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter.classes_, yticklabels=dtree_kickstarter.classes_)
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.title('Confusion Matrix for Test Set')
-plt.show()
-
-test_error_rate = 1 - accuracy_score(y_testkickstarter, y_testkickstarter_pred)
-print(f"Test error rate: {test_error_rate:.4f}")
-
-maxlevels = [None, 2, 3, 5, 8]
-crits = ['gini', 'entropy']
-for l in maxlevels:
-    for c in crits:
-        dt = DecisionTreeClassifier(max_depth = l, criterion = c)
-        dt.fit(X_trainkickstarter, y_trainkickstarter)
-        print(l, c, dt.score(X_testkickstarter, y_testkickstarter))
         
 #%% 
 from sklearn.metrics import confusion_matrix, accuracy_score
