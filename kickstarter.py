@@ -697,7 +697,6 @@ plt.title('ROC Curve')
 plt.show()
 
 # %%
-# %%
 # prep US only stuff 
 
 # Create final dataframe with selected columns
@@ -813,7 +812,6 @@ print(vif_df)
 
 # %%
 #try us only 
-
 train_df_stats, test_df_stats = train_test_split(kickstarter_us_binary, test_size=0.2, random_state=42)
 
 # Define the formula for logistic regression
@@ -873,65 +871,6 @@ print('Training Confusion Matrix:')
 print(conf_matrix_stats_train)
 print('Training Classification Report:')
 print(class_report_stats_train)
-#%% 
-
-# take sample of dataset and do feature selection
-# fit the model to full dataset
-
-# Sample a smaller subset (e.g., 5% of the data) for faster feature selection
-def sample_data(df, frac=0.05, random_state=42):
-    return kickstarter_final_US.sample(frac=frac, random_state=random_state)
-
-# Helper function to print timings
-def print_timing(message, start_time):
-    print(f'{message}: {time.time() - start_time:.2f} seconds')
-
-# Prepare the data
-train_df_select, test_df_select = train_test_split(kickstarter_final_US, test_size=0.2, random_state=42)
-x_us_select = train_df_select.drop(columns=['state_binary', 'state'], axis=1)
-y_us_select = train_df_select['state_binary']
-
-# Sample 5% of the training data for feature selection
-sampled_train_df = sample_data(train_df_select, frac=0.05)
-x_sampled_us_select = sampled_train_df.drop(columns=['state_binary', 'state'], axis=1)
-y_sampled_us_select = sampled_train_df['state_binary']
-
-logistic_model = LogisticRegression(max_iter=5000)
-
-print("Starting feature selection...")
-start_time = time.time()
-
-# Perform forward feature selection on the sampled data with reduced cross-validation folds
-sfs_us = SFS(logistic_model,
-             k_features='best',
-             forward=True,
-             floating=False,
-             scoring='accuracy',
-             cv=3,  # Reduced number of CV folds
-             n_jobs=-1)  # Use all available cores
-sfs_us = sfs_us.fit(x_sampled_us_select, y_sampled_us_select)
-
-selection_time = time.time() - start_time
-print_timing("Feature selection time", start_time)
-selected_features_us = list(sfs_us.k_feature_names_)
-print(f'Selected features: {selected_features_us}')
-
-print("Starting model fitting with full data...")
-start_time = time.time()
-x_selected_us_features = x_us_select[selected_features_us]
-logistic_model.fit(x_selected_us_features, y_us_select)
-fitting_time = time.time() - start_time
-print_timing("Model fitting time", start_time)
-
-print("Starting model evaluation...")
-start_time = time.time()
-x_test_us_select = test_df_select[selected_features_us]
-y_test_us_select = test_df_select['state_binary']
-y_pred_us_select = logistic_model.predict(x_test_us_select)
-accuracy_us_select = accuracy_score(y_test_us_select, y_pred_us_select)
-print(f'Accuracy: {accuracy_us_select}')
-evaluation_time = time.time() - start_time
-print_timing("Model evaluation time", start_time)
 
 # %%
 # Average % met and shows the inconsistency in the data with the cancelled state
