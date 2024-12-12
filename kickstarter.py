@@ -861,3 +861,22 @@ plt.figure(figsize=(6, 6))
 plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
 plt.title('Distribution of Projects: Zero Backers vs 1+ Backers')
 plt.show()
+
+# %%
+# Histogram of Backers
+backers = kickstarter['backers']
+
+Q1 = backers.quantile(0.25)
+Q3 = backers.quantile(0.75)
+IQR = Q3 - Q1
+filtered_backers = backers[(backers <= Q3 + 1.5 * IQR)]
+
+num_outliers_removed = len(backers) - len(filtered_backers)
+
+plt.hist(filtered_backers, bins=50, edgecolor='black')
+plt.title('Histogram of Backers (Outliers Removed)')
+plt.xlabel('Number of Backers')
+plt.ylabel('Frequency')
+plt.show()
+
+print(f"Number of outliers removed: {num_outliers_removed}")
