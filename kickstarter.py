@@ -316,6 +316,76 @@ plt.xticks(rotation=45)
 plt.tight_layout()
 plt.show()
 
+# %%
+# Average % met and shows the inconsistency in the data with the cancelled state
+data = kickstarter[kickstarter['state'].isin(['failed', 'canceled', 'successful'])]
+
+canceled_inconsistent = data[(data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real'])]
+num_removed_canceled = canceled_inconsistent.shape[0]
+
+total_canceled = data[data['state'] == 'canceled'].shape[0]
+num_kept_canceled = total_canceled - num_removed_canceled
+
+print(f"Number of logically inconsistent 'canceled' rows removed: {num_removed_canceled}")
+
+data_clean = data[~((data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real']))]
+data_clean['percentage_met'] = (data_clean['usd_pledged_real'] / data_clean['usd_goal_real']) * 100
+
+data_filtered = data_clean[data_clean['state'].isin(['failed', 'successful'])]
+
+goal_met_percentage = data_filtered.groupby('state')['percentage_met'].mean().reset_index()
+
+plt.figure(figsize=(8, 6))
+plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met'], color=['red', 'green'])
+plt.title('Average Percentange Met of Campaign Goal')
+plt.ylabel('Average Percentage of Goal Met (%)')
+plt.xlabel('Project State')
+plt.ylim(0, max(goal_met_percentage['percentage_met']) + 20)
+for index, value in enumerate(goal_met_percentage['percentage_met']):
+    plt.text(index, value + 2, f"{value:.2f}%", ha='center')
+plt.show()
+
+plt.figure(figsize=(6, 6))
+plt.pie([num_removed_canceled, num_kept_canceled],
+        labels=['Removed Canceled Rows', 'Kept Canceled Rows'],
+        autopct='%1.1f%%', startangle=90, colors=['red', 'orange'])
+plt.title('Breakdown of Removed vs. Kept Canceled Rows')
+plt.show()
+
+# Zero backers
+zero_backers_count = kickstarter[kickstarter['backers'] == 0].shape[0]
+one_or_more_backers_count = kickstarter[kickstarter['backers'] >= 1].shape[0]
+
+labels = ['Zero Backers', '1+ Backers']
+sizes = [zero_backers_count, one_or_more_backers_count]
+colors = ['red', 'green']
+
+plt.figure(figsize=(6, 6))
+plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
+plt.title('Distribution of Projects: Zero Backers vs 1+ Backers')
+plt.show()
+
+
+# %%
+# Histogram of Backers
+backers = kickstarter['backers']
+
+Q1 = backers.quantile(0.25)
+Q3 = backers.quantile(0.75)
+IQR = Q3 - Q1
+filtered_backers = backers[(backers <= Q3 + 1.5 * IQR)]
+
+num_outliers_removed = len(backers) - len(filtered_backers)
+
+plt.hist(filtered_backers, bins=50, edgecolor='black')
+plt.title('Histogram of Backers (Outliers Removed)')
+plt.xlabel('Number of Backers')
+plt.ylabel('Frequency')
+plt.show()
+
+print(f"Number of outliers removed: {num_outliers_removed}")
+
+
 #%% [markdown]
 
 ## 3. Classification Decision Tree Training, Fit, Analysis, and Evaluation
@@ -815,71 +885,3 @@ print(conf_matrix_stats_train)
 print('Training Classification Report:')
 print(class_report_stats_train)
 
-# %%
-# Average % met and shows the inconsistency in the data with the cancelled state
-data = kickstarter[kickstarter['state'].isin(['failed', 'canceled', 'successful'])]
-
-canceled_inconsistent = data[(data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real'])]
-num_removed_canceled = canceled_inconsistent.shape[0]
-
-total_canceled = data[data['state'] == 'canceled'].shape[0]
-num_kept_canceled = total_canceled - num_removed_canceled
-
-print(f"Number of logically inconsistent 'canceled' rows removed: {num_removed_canceled}")
-
-data_clean = data[~((data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real']))]
-data_clean['percentage_met'] = (data_clean['usd_pledged_real'] / data_clean['usd_goal_real']) * 100
-
-data_filtered = data_clean[data_clean['state'].isin(['failed', 'successful'])]
-
-goal_met_percentage = data_filtered.groupby('state')['percentage_met'].mean().reset_index()
-
-plt.figure(figsize=(8, 6))
-plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met'], color=['red', 'green'])
-plt.title('Average Percentange Met of Campaign Goal')
-plt.ylabel('Average Percentage of Goal Met (%)')
-plt.xlabel('Project State')
-plt.ylim(0, max(goal_met_percentage['percentage_met']) + 20)
-for index, value in enumerate(goal_met_percentage['percentage_met']):
-    plt.text(index, value + 2, f"{value:.2f}%", ha='center')
-plt.show()
-
-plt.figure(figsize=(6, 6))
-plt.pie([num_removed_canceled, num_kept_canceled],
-        labels=['Removed Canceled Rows', 'Kept Canceled Rows'],
-        autopct='%1.1f%%', startangle=90, colors=['red', 'orange'])
-plt.title('Breakdown of Removed vs. Kept Canceled Rows')
-plt.show()
-
-# Zero backers
-zero_backers_count = kickstarter[kickstarter['backers'] == 0].shape[0]
-one_or_more_backers_count = kickstarter[kickstarter['backers'] >= 1].shape[0]
-
-labels = ['Zero Backers', '1+ Backers']
-sizes = [zero_backers_count, one_or_more_backers_count]
-colors = ['red', 'green']
-
-plt.figure(figsize=(6, 6))
-plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
-plt.title('Distribution of Projects: Zero Backers vs 1+ Backers')
-plt.show()
-
-
-# %%
-# Histogram of Backers
-backers = kickstarter['backers']
-
-Q1 = backers.quantile(0.25)
-Q3 = backers.quantile(0.75)
-IQR = Q3 - Q1
-filtered_backers = backers[(backers <= Q3 + 1.5 * IQR)]
-
-num_outliers_removed = len(backers) - len(filtered_backers)
-
-plt.hist(filtered_backers, bins=50, edgecolor='black')
-plt.title('Histogram of Backers (Outliers Removed)')
-plt.xlabel('Number of Backers')
-plt.ylabel('Frequency')
-plt.show()
-
-print(f"Number of outliers removed: {num_outliers_removed}")
