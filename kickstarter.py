@@ -178,8 +178,8 @@ plt.legend(title='Outcome')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
-
-# In the first 2 graphs, you can see the total number of projects in the 
+#%% [markdown]
+# In the first 2 graphs above, you can see the total number of projects in the 
 # US far exceed that of any other country. In the third, you can the overall
 # distribution of projects in the various categories, as well as failure
 # versus success rate for those categories. some have appreciably better rates
@@ -418,7 +418,28 @@ print(f"Number of outliers removed: {num_outliers_removed}")
 #%% [markdown]
 
 ## 3. Classification Decision Tree Training, Fit, Analysis, and Evaluation
-# To create the decision tree, we 
+# To create the decision tree, we created a training set and then fit a 
+# tree to max depth 8. This produced a complex tree with 34 leaf nodes, but
+# training error rate of 0. The test error rate for this tree was 5.2% which
+# is good, however the size of the tree makes it very complex to understand
+# and we strongly suspct this tree is overfitting the data. 
+# We then tried trees at depths 3. 4. and 5 (only 4 is depicted in this code).
+# The tree at depth 3 was reasonably easy to undersand and did still have
+# a training error rate of only 6.9%, and a test error rate of 10.6%. At
+# max depth 4, the training error rate was 6.87% and the test error rate
+# was 8.4%. At max depth 5, the training error was only 1.6% and the test
+# error 6.4%. In order to compare the models at the different depths, we 
+# completed cross validation at each and compared the scores using T-tests.
+# The model with max depth 4 performed statistically better than the model
+# with max depth 3, but the model with max depth 5 was not statistically
+# better than the model with max depth 4. We also performed a validation
+# curve for the tree which showed the ideal depth is probably around 5-6
+# based on the point at which both the training score and the validation 
+# score are at their highest, however these models at these depths are 
+# very complex and much more difficult to understand. So we elected to 
+# use the model with max depth 4 as we felt the slight increase error 
+# rate was acceptable in exchange for a much simpler model with only 15 
+# terminal leaf nodes.
 # %%
 # create a training set
 
