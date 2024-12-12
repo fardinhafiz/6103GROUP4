@@ -1,6 +1,6 @@
 #%% [markdown]
 ## Predicting Kickstarter Campaign Success
-# By: Leshauna Hartman, Fardin Hafiz, Tanya Visser, and Rachel Thomas
+# By: Leshauna Hartman, Fardin Hafiz, Tanya Visser, and Rachel Thomas (Group 4)
 
 #%% [markdown]
 
@@ -14,19 +14,21 @@ import statsmodels.formula.api as smf
 from sklearn.model_selection import train_test_split
 import matplotlib.colors as mcolors
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
 from sklearn.tree import plot_tree
 from sklearn.tree import export_text
-from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.linear_model import LogisticRegression
 from statsmodels.formula.api import glm
-from sklearn.metrics import classification_report
 from sklearn.metrics import roc_auc_score, roc_curve
 import time
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.tree import export_text
-
+from sklearn.model_selection import cross_val_score
+from scipy.stats import ttest_rel
+from sklearn.model_selection import validation_curve
+from sklearn import metrics
+import pandas as pd
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 #%%
 # read in the dataset 
@@ -126,7 +128,7 @@ grouped_country = kickstarter_final.groupby(['country', 'state']).size().unstack
 grouped_country.plot(kind='bar', stacked=True, figsize=(10, 6), color=['red', 'green'])
 plt.title('Projects by Country, and Outcome (Stacked)')
 plt.ylabel('Count')
-plt.xlabel('Category')
+plt.xlabel('Country')
 plt.legend(title='Outcome')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
@@ -137,7 +139,7 @@ grouped_currency = kickstarter_final.groupby(['currency', 'state']).size().unsta
 grouped_currency.plot(kind='bar', stacked=True, figsize=(10, 6), color=['red', 'green'])
 plt.title('Projects by Currency, and Outcome (Stacked)')
 plt.ylabel('Count')
-plt.xlabel('Category')
+plt.xlabel('Currency')
 plt.legend(title='Outcome')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
@@ -232,8 +234,6 @@ print("Top 5 categories with the Highest Percentage of Successful Projects (all 
 print(top_categories_percentage_us)
 
 # using median goal instead of mean goal
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 
 # Calculate the total number of projects per category
 total_projects_us = us_kickstarter_final.groupby('main_category').size()
@@ -397,7 +397,24 @@ train_set, test_set = train_test_split(kickstarter_final, train_size=800, random
 
 #%%
 #fit tree to training data
+# max depth 8
+X_trainkickstarter = train_set.drop(columns=['state'])
+y_trainkickstarter = train_set['state']
 
+X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
+
+dtree_kickstarter = DecisionTreeClassifier(max_depth = 8, criterion = 'gini', random_state = 1)
+
+dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
+
+y_trainkickstarter_pred = dtree_kickstarter.predict(X_trainkickstarter)
+
+
+training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_trainkickstarter_pred)
+
+print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
+
+# max depth 4
 X_trainkickstarter = train_set.drop(columns=['state'])
 y_trainkickstarter = train_set['state']
 
@@ -416,12 +433,7 @@ print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
 
 #%%
 # Comparison of cross validations to find best depth
-from sklearn.model_selection import cross_val_score
-from sklearn.tree import DecisionTreeClassifier
-from scipy.stats import ttest_rel
-import pandas as pd
 
-# Assuming you have already loaded your data and done the necessary preprocessing
 X_trainkickstarter = train_set.drop(columns=['state'])
 y_trainkickstarter = train_set['state']
 
@@ -444,7 +456,7 @@ print(f"Scores for max_depth=3: {scores_depth3}")
 print(f"Scores for max_depth=4: {scores_depth4}")
 print(f"T-statistic: {t_stat:.4f}, P-value: {p_value:.4f}")
 
-# Check if the difference is significant (typically, p < 0.05)
+# Check if the difference is significant
 if p_value < 0.05:
     print("The difference in performance is statistically significant.")
 else:
@@ -457,16 +469,15 @@ print(f"Scores for max_depth=4: {scores_depth4}")
 print(f"Scores for max_depth=5: {scores_depth5}")
 print(f"T-statistic: {t_stat:.4f}, P-value: {p_value:.4f}")
 
-# Check if the difference is significant (typically, p < 0.05)
+# Check if the difference is significant 
 if p_value < 0.05:
     print("The difference in performance is statistically significant.")
 else:
     print("The difference in performance is not statistically significant.")
 
 #%%
-from sklearn.model_selection import validation_curve
-import matplotlib.pyplot as plt
-import numpy as np
+
+# Validation curve for decision tree - probably best around 6, but more complex than necessary
 
 # Define parameter range
 param_range = np.arange(1, 15)
@@ -523,8 +534,6 @@ print(tree_rules)
 
 #predict response on the test data and produce confusion matrix
 
-
-
 X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
 
 # Align test set columns with training set columns
@@ -547,8 +556,8 @@ test_error_rate = 1 - accuracy_score(y_testkickstarter, y_testkickstarter_pred)
 print(f"Test error rate: {test_error_rate:.4f}")
 
 # %%
-
-maxlevels = [None, 2, 3, 5, 8]
+# checking for best depth - although better fits a higher depth, tree becomes very complex and potentially overfit
+maxlevels = [None, 2, 3, 4, 5, 6, 7, 8]
 crits = ['gini', 'entropy']
 for l in maxlevels:
     for c in crits:
@@ -622,7 +631,6 @@ plt.ylabel("True", fontsize = 12)
 plt.show()
 
 #%%
-from sklearn import metrics
 
 y_prob = model.predict_proba(X_test)[:, 1]  # Probability of positive class
 roc_auc = roc_auc_score(y_test, y_prob)  # AUC score
@@ -724,11 +732,6 @@ kickstarter_final_US['main_category'] = kickstarter_final_US['main_category'].re
 kickstarter_final_US = kickstarter_final_US.drop(['currency', 'country'], axis = 1)
 
 #%%
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-import statsmodels.formula.api as smf
-from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 #binary state
 kickstarter_us_binary = kickstarter_final_US.copy()
@@ -795,9 +798,7 @@ print(f'Accuracy: {accuracy_us_select}')
 evaluation_time = time.time() - start_time
 print_timing("Model evaluation time", start_time)
 
-import numpy as np
-import pandas as pd
-from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 
 # Convert boolean columns to integers
 def convert_boolean_to_int(data):
