@@ -316,6 +316,10 @@ plt.xticks(rotation=45)
 plt.tight_layout()
 plt.show()
 
+#%% [markdown]
+
+## 3. Classification Decision Tree Training, Fit, Analysis, and Evaluation
+
 # %%
 # create a training set
 
@@ -482,6 +486,10 @@ for l in maxlevels:
         dt.fit(X_trainkickstarter, y_trainkickstarter)
         print(l, c, dt.score(X_testkickstarter, y_testkickstarter))
 
+#%% [markdown]
+
+## 4. Logistic Regression Model Training, Fit, Analysis, and Evaluation
+
 # %%
 
 # Logistic Regression Model
@@ -626,6 +634,10 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('ROC Curve')
 plt.show()
+
+#%% [markdown]
+
+## 5. Logistic Regression Model and Forward Step-wise Feature Selection with the same variables but data subset to US only. 
 
 # %%
 # prep US only stuff 
