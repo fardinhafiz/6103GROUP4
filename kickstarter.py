@@ -896,7 +896,6 @@ total_canceled = data[data['state'] == 'canceled'].shape[0]
 num_kept_canceled = total_canceled - num_removed_canceled
 
 print(f"Number of logically inconsistent 'canceled' rows removed: {num_removed_canceled}")
-print(f"Number of 'canceled' rows kept: {num_kept_canceled}")
 
 data_clean = data[~((data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real']))]
 data_clean['percentage_met'] = (data_clean['usd_pledged_real'] / data_clean['usd_goal_real']) * 100
