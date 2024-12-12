@@ -81,6 +81,10 @@ kickstarter1.info()
 kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'usd_pledged_real', 'usd_goal_real', 'Duration']]
 print(kickstarter_final)
 
+#%% [markdown]
+
+## 1. Data Cleaning
+
 # %%
 # summary stats (for all countries)
 # Describe continuous variables
@@ -88,20 +92,6 @@ print(kickstarter_final[['backers', 'usd_goal_real', 'usd_pledged_real', 'Durati
 
 # Describe categorical variables
 print(kickstarter_final[['main_category', 'state', 'currency', 'country']].apply(lambda x: x.describe(include='all')).T)
-
-#%% 
-# correlation plot for dataframe for all countries 
-# One-hot encode the categorical variables
-kickstarter_final_encoded = pd.get_dummies(kickstarter_final, drop_first=True)
-
-# Calculate the correlation matrix
-kickstarter_final_encoded_corr_matrix = kickstarter_final_encoded.corr()
-
-# Generate a heat map
-plt.figure(figsize=(10, 8))
-sns.heatmap(kickstarter_final_encoded_corr_matrix, annot=False, cmap='coolwarm', linewidths=.5)
-plt.title('Correlation Matrix Heat Map')
-plt.show()
 
 #%%
 # distribution of failed vs success
@@ -126,45 +116,6 @@ plt.pie(
     startangle=90, 
     colors=['red', 'green'])
 plt.title('Distribution of Kickstarter Project Outcomes')
-plt.show()
-
-#%% 
-# Filter the dataframe for successful and failed projects
-successful_projects = kickstarter_final[kickstarter_final['state'] == "successful"]
-failed_projects = kickstarter_final[kickstarter_final['state'] == "failed"]
-
-# Create the scatter plot for successful projects
-plt.figure(figsize=(12, 8))
-sns.scatterplot(data=successful_projects, 
-                x='usd_goal_real', 
-                y='backers', 
-                hue='main_category', 
-                palette='Set2')
-plt.title('Successful Kickstarter Projects: Goal Amount vs. Number of Backers by Main Category')
-plt.xlabel('Goal Amount in USD')
-plt.ylabel('Number of Backers')
-plt.legend(title='Main Category', bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.grid(True)
-plt.tight_layout()
-
-# Show the first plot
-plt.show()
-
-# Create the scatter plot for failed projects
-plt.figure(figsize=(12, 8))
-sns.scatterplot(data=failed_projects, 
-                x='usd_goal_real', 
-                y='backers', 
-                hue='main_category', 
-                palette='Set2')
-plt.title('Failed Kickstarter Projects: Goal Amount vs. Number of Backers by Main Category')
-plt.xlabel('Goal Amount in USD')
-plt.ylabel('Number of Backers')
-plt.legend(title='Main Category', bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.grid(True)
-plt.tight_layout()
-
-# Show the second plot
 plt.show()
 
 # %%
