@@ -316,45 +316,6 @@ plt.xticks(rotation=45)
 plt.tight_layout()
 plt.show()
 
-#%% 
-
-
-# Separate the data based on state
-successful_goals = kickstarter_final[kickstarter_final['state'] == 'successful']['usd_goal_real']
-failed_goals = kickstarter_final[kickstarter_final['state'] == 'failed']['usd_goal_real']
-
-# Plot histogram for successful goals
-plt.figure(figsize=(12, 6))
-plt.hist(successful_goals, bins = 5000, alpha=0.7, color='blue')
-plt.xlabel('Goal Amount (USD)')
-plt.ylabel('Frequency')
-plt.title('Histogram of Goal Amounts for Successful Projects')
-plt.xlim(0, 20000)
-plt.show()
-
-# Plot histogram for failed goals
-plt.figure(figsize=(12, 6))
-plt.hist(failed_goals, alpha=0.7, color='red')
-plt.xlabel('Goal Amount (USD)')
-plt.ylabel('Frequency')
-plt.title('Histogram of Goal Amounts for Failed Projects')
-plt.show()
-
-#%%
-
-plt.figure(figsize=(10, 6))
-sns.scatterplot(data=kickstarter_final, x='usd_goal_real', y='backers', hue='state', palette='viridis', alpha=0.7)
-
-# Customizing the plot
-plt.title('Scatterplot of Backers vs Goal Colored by State')
-plt.xlabel('Goal (use_goal_real)')
-plt.ylabel('Backers')
-plt.legend(title='State', loc='upper right')
-plt.grid(True)
-
-# Show the plot
-plt.show()
-
 # %%
 # create a training set
 
