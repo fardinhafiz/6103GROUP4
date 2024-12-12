@@ -611,103 +611,127 @@ plt.title('ROC Curve')
 plt.show()
 
 # %%
-### logistic model (only US and using goal instead of pledged)
-
-# subset out failed/successful
-kickstarter2 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
-
-#subset out only US projects 
-kickstarter2 = kickstarter2[kickstarter['country'].isin(['US'])]
-
-#rename film category 
-kickstarter2['main_category'] = kickstarter2['main_category'].replace({'Film & Video': 'Film_and_Video'})
-
-# Add duration of campaign (difference between launch date and deadline)
-kickstarter2['launched'] = pd.to_datetime(kickstarter2['launched']).dt.date
-kickstarter2['deadline'] = pd.to_datetime(kickstarter2['deadline']).dt.date
-kickstarter2['Duration'] = (pd.to_datetime(kickstarter2['deadline']) - pd.to_datetime(kickstarter2['launched'])).dt.days
-
-# Convert categorical columns to category type
-for col in ['main_category', 'currency', 'state']:
-    kickstarter2[col] = kickstarter2[col].astype('category')
+# %%
+# prep US only stuff 
 
 # Create final dataframe with selected columns
-kickstarter_final_US = kickstarter2[['main_category', 'currency', 'state', 'backers', 'Duration', 'usd_goal_real']]
+kickstarter_final_US = kickstarter_final.copy()
 
-# Add dummy variables for categorical columns
-kickstarter_final_US = pd.get_dummies(kickstarter_final_US, columns=['main_category', 'currency'], drop_first=True)
+#subset out US 
+kickstarter_final_US = kickstarter_final_US[kickstarter_final_US['country'] == 'US']
 
-# split into features and target variables 
-selected_features_us = ["backers", "usd_goal_real", "main_category_Comics", "main_category_Crafts", "main_category_Dance", "main_category_Design", "main_category_Fashion", "main_category_Film_and_Video", "main_category_Food", "main_category_Games", "main_category_Journalism", "main_category_Music", "main_category_Photography", "main_category_Publishing", "main_category_Technology", "main_category_Theater", "Duration"]
+#rename film category 
+kickstarter_final_US['main_category'] = kickstarter_final_US['main_category'].replace({'Film & Video': 'Film_and_Video'})
 
-x_us = kickstarter_final_US[selected_features_us]
-y_us = kickstarter_final_US['state']
+kickstarter_final_US = kickstarter_final_US.drop(['currency', 'country'], axis = 1)
 
-# Split into training and test sets
-x_us_train, x_us_test, y_us_train, y_us_test = train_test_split(x_us, y_us, test_size=0.2, random_state=42)
+#%%
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import statsmodels.formula.api as smf
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-# Initialize the logistic regression model
-logreg_us_model = LogisticRegression(max_iter=5000)
+#binary state
+kickstarter_us_binary = kickstarter_final_US.copy()
+kickstarter_us_binary['state_binary'] = kickstarter_us_binary['state'].map({'failed': 0, 'successful': 1})
+kickstarter_us_binary['state_binary'] = kickstarter_us_binary['state_binary'].astype(int)
 
-logreg_us_model.fit(x_us_train, y_us_train)
+kickstarter_us_binary = kickstarter_us_binary.drop(['state'], axis = 1)
 
-# Model Accuracy
-print('Logit model accuracy (train set):', logreg_us_model.score(x_us_train, y_us_train))
-print('Logit model accuracy (test set):', logreg_us_model.score(x_us_test, y_us_test))
+# Dummy variables
+kickstarter_us_binary = pd.get_dummies(kickstarter_us_binary, columns=['main_category'], drop_first=True)
 
-coefficients_us = pd.DataFrame({
-    'Predictors': x_us.columns,
-    'Coefficient': logreg_us_model.coef_[0],
-    'Odds Ratio': np.exp(logreg_us_model.coef_[0])
-})
-print("\nCoefficients and Odds Ratios:\n", coefficients_us)
+# Sample a smaller subset (e.g., 5% of the data) for faster feature selection
+def sample_data(df, frac=0.05, random_state=42):
+    return kickstarter_us_binary.sample(frac=frac, random_state=random_state)
 
-# Predictions and Evaluation
-y_pred_us = logreg_us_model.predict(x_us_test)
+# Helper function to print timings
+def print_timing(message, start_time):
+    print(f'{message}: {time.time() - start_time:.2f} seconds')
 
-conf_matrix_us = confusion_matrix(y_us_test, y_pred_us)
-accuracy_us = accuracy_score(y_us_test, y_pred_us)
+# Prepare the data
+train_df_select, test_df_select = train_test_split(kickstarter_us_binary, test_size=0.2, random_state=42)
+x_us_select = train_df_select.drop(columns=['state_binary'], axis=1)
+y_us_select = train_df_select['state_binary']
 
-print("\n The confusion matrix of the model is:")
-print(conf_matrix_us)
+# Sample 5% of the training data for feature selection
+sampled_train_df = sample_data(train_df_select, frac=0.05)
+x_sampled_us_select = sampled_train_df.drop(columns=['state_binary'], axis=1)
+y_sampled_us_select = sampled_train_df['state_binary']
 
-print("\n The accuracy of the model is:")
-print(accuracy_us)
+logistic_model = LogisticRegression(max_iter=5000)
 
-print("\n The model's classification Report:")
-print(classification_report(y_us_test, y_pred_us))
+print("Starting feature selection...")
+start_time = time.time()
 
-# ROC curve with AUC for logistic model
-y_pred_prob_us = logreg_us_model.predict_proba(x_us_test)[:, 1]
-roc_auc_us = roc_auc_score(y_us_test, y_pred_prob_us) # evaluating AUC
+# Perform forward feature selection on the sampled data with reduced cross-validation folds
+sfs_us = SFS(logistic_model,
+             k_features='best',
+             forward=True,
+             floating=False,
+             scoring='accuracy',
+             cv=3,  # Reduced number of CV folds
+             n_jobs=-1)  # Use all available cores
+sfs_us = sfs_us.fit(x_sampled_us_select, y_sampled_us_select)
 
-print(f"\n The area under the curve is found to be {roc_auc_us:.3f}.")
+selection_time = time.time() - start_time
+print_timing("Feature selection time", start_time)
+selected_features_us = list(sfs_us.k_feature_names_)
+print(f'Selected features: {selected_features_us}')
 
-y_us_test_mapped = y_us_test.map({'failed': 0, 'successful': 1})
+print("Starting model fitting with full data...")
+start_time = time.time()
+x_selected_us_features = x_us_select[selected_features_us]
+logistic_model.fit(x_selected_us_features, y_us_select)
+fitting_time = time.time() - start_time
+print_timing("Model fitting time", start_time)
 
-fpr, tpr, thresholds = roc_curve(y_us_test_mapped, y_pred_prob_us)
-plt.plot(fpr, tpr, label=f"AUC = {roc_auc_us:.3f}")
+print("Starting model evaluation...")
+start_time = time.time()
+x_test_us_select = test_df_select[selected_features_us]
+y_test_us_select = test_df_select['state_binary']
+y_pred_us_select = logistic_model.predict(x_test_us_select)
+accuracy_us_select = accuracy_score(y_test_us_select, y_pred_us_select)
+print(f'Accuracy: {accuracy_us_select}')
+evaluation_time = time.time() - start_time
+print_timing("Model evaluation time", start_time)
 
-# Shading the AUC
-plt.fill_between(fpr, tpr, color='skyblue', alpha=0.3)
+import numpy as np
+import pandas as pd
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-# Text with AUC value inside the plot
-plt.text(0.4, 0.5, f'AUC = {roc_auc_us:.3f}', fontsize=12)
+# Convert boolean columns to integers
+def convert_boolean_to_int(data):
+    bool_cols = data.select_dtypes(include=['bool']).columns
+    data[bool_cols] = data[bool_cols].astype(int)
+    return data
 
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curve')
-plt.show()
+# Calculating VIF with NaN, Infinity checks, and boolean conversion
+def calculate_vif(data):
+    # Convert boolean columns to integers
+    data = convert_boolean_to_int(data)
+
+    # Convert data to numeric and handle errors
+    data = data.apply(pd.to_numeric, errors='coerce')
+
+    vif_data = pd.DataFrame()
+    vif_data["feature"] = data.columns
+    vif_data["VIF"] = [variance_inflation_factor(data.values, i) for i in range(len(data.columns))]
+    return vif_data
+
+# Running VIF on the selected features
+x_selected_us_features_with_vif = x_us_select[selected_features_us]
+vif_df = calculate_vif(x_selected_us_features_with_vif)
+print(vif_df)
+
 # %%
+#try us only 
 
-kickstarter_final_US['state_binary'] = kickstarter_final_US['state'].map({'failed': 0, 'successful': 1})
-kickstarter_final_US['state_binary'] = kickstarter_final_US['state_binary'].astype(int)
-
-# Split the data into training and testing sets
-train_df_stats, test_df_stats = train_test_split(kickstarter_final_US, test_size=0.2, random_state=42)
+train_df_stats, test_df_stats = train_test_split(kickstarter_us_binary, test_size=0.2, random_state=42)
 
 # Define the formula for logistic regression
-formula = 'state_binary ~ backers + usd_goal_real + main_category_Comics + main_category_Crafts + main_category_Dance + main_category_Design + main_category_Fashion + main_category_Film_and_Video + main_category_Food + main_category_Games + main_category_Journalism + main_category_Music + main_category_Photography + main_category_Publishing + main_category_Technology + main_category_Theater + Duration'
+formula = 'state_binary ~ backers + usd_pledged_real + main_category_Comics + main_category_Crafts + main_category_Dance + main_category_Design + main_category_Fashion + main_category_Film_and_Video + main_category_Food + main_category_Games + main_category_Journalism + main_category_Music + main_category_Photography + main_category_Publishing + main_category_Technology + main_category_Theater'
 
 # Fit the logistic regression model
 stats_model_us = smf.logit(formula, data=train_df_stats).fit()
@@ -716,27 +740,15 @@ stats_model_us = smf.logit(formula, data=train_df_stats).fit()
 test_df_stats['predicted'] = stats_model_us.predict(test_df_stats)
 test_df_stats['predicted_class'] = (test_df_stats['predicted'] > 0.5).astype(int)
 
-# Evaluate the model's performance
-accuracy_stats_us = accuracy_score(test_df_stats['state_binary'], test_df_stats['predicted_class'])
-conf_matrix_stats_us = confusion_matrix(test_df_stats['state_binary'], test_df_stats['predicted_class'])
-class_report_stats_us = classification_report(test_df_stats['state_binary'], test_df_stats['predicted_class'])
-
-print(f'Accuracy: {accuracy_stats_us}')
-print('Confusion Matrix:')
-print(conf_matrix_stats_us)
-print('Classification Report:')
-print(class_report_stats_us)
-
 # Display the model summary
 print(stats_model_us.summary())
 
 # Extract the independent variables from the training data
-independent_vars_for_vif = train_df_stats[['backers', 'usd_goal_real', 'main_category_Comics', 'main_category_Crafts', 
+independent_vars_for_vif = train_df_stats[['backers', 'usd_pledged_real', 'main_category_Comics', 'main_category_Crafts', 
                                    'main_category_Dance', 'main_category_Design', 'main_category_Fashion', 
                                    'main_category_Film_and_Video', 'main_category_Food', 'main_category_Games', 
                                    'main_category_Journalism', 'main_category_Music', 'main_category_Photography', 
-                                   'main_category_Publishing', 'main_category_Technology', 'main_category_Theater', 
-                                   'Duration']]
+                                   'main_category_Publishing', 'main_category_Technology', 'main_category_Theater']]
 
 # Convert boolean variables to integers
 independent_vars_for_vif = independent_vars_for_vif.applymap(lambda x: int(x) if isinstance(x, bool) else x)
@@ -751,7 +763,30 @@ vif_data['VIF'] = [variance_inflation_factor(independent_vars_for_vif.values, i)
 
 print(vif_data)
 
-# VIF for duration is >5
+# Evaluate the model's performance on the test data
+accuracy_stats_test = accuracy_score(test_df_stats['state_binary'], test_df_stats['predicted_class'])
+conf_matrix_stats_test = confusion_matrix(test_df_stats['state_binary'], test_df_stats['predicted_class'])
+class_report_stats_test = classification_report(test_df_stats['state_binary'], test_df_stats['predicted_class'])
+
+print(f'Test Accuracy: {accuracy_stats_test}')
+print('Test Confusion Matrix:')
+print(conf_matrix_stats_test)
+print('Test Classification Report:')
+print(class_report_stats_test)
+
+# Evaluate the model's performance on the training data
+train_df_stats['predicted'] = stats_model_us.predict(train_df_stats)
+train_df_stats['predicted_class'] = (train_df_stats['predicted'] > 0.5).astype(int)
+
+accuracy_stats_train = accuracy_score(train_df_stats['state_binary'], train_df_stats['predicted_class'])
+conf_matrix_stats_train = confusion_matrix(train_df_stats['state_binary'], train_df_stats['predicted_class'])
+class_report_stats_train = classification_report(train_df_stats['state_binary'], train_df_stats['predicted_class'])
+
+print(f'Training Accuracy: {accuracy_stats_train}')
+print('Training Confusion Matrix:')
+print(conf_matrix_stats_train)
+print('Training Classification Report:')
+print(class_report_stats_train)
 #%% 
 
 # take sample of dataset and do feature selection
