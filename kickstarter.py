@@ -74,14 +74,15 @@ kickstarter1.info()
 
 kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'usd_pledged_real', 'usd_goal_real', 'Duration']]
 print(kickstarter_final)
+
+kickstarter_final_us = kickstarter_final[kickstarter_final['country' == 'US']]
 # %%
 # summary stats (for all countries)
 # Describe continuous variables
 print(kickstarter_final[['backers', 'usd_goal_real', 'usd_pledged_real', 'Duration']].describe())
 
 # Describe categorical variables
-print(kickstarter_final[['main_category', 'state']].apply(lambda x: x.describe(include='all')).T)
-
+print(kickstarter_final[['main_category', 'state', 'currency', 'country']].apply(lambda x: x.describe(include='all')).T)
 
 #%% 
 # correlation plot for dataframe for all countries 
