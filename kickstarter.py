@@ -83,7 +83,7 @@ print(kickstarter_final)
 
 #%% [markdown]
 
-## 1. Data Cleaning
+## 2. Exploratory Data Analysis
 
 # %%
 # summary stats (for all countries)
