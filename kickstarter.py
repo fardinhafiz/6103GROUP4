@@ -30,6 +30,14 @@ from sklearn import metrics
 import pandas as pd
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
+
+#%% [markdown]
+
+# We started by reading in the dataset and calling it "kickstarter". 
+# Then we ran some code just to evaluate what the dataset looked like
+# from a wholistic standpoint - what kind of values were in the dataset
+# and the data types and distriution of null values.
+
 #%%
 # read in the dataset 
 
@@ -47,6 +55,19 @@ kickstarter.info()
 kickstarter['state'].unique()
 kickstarter['main_category'].unique()
 
+#%% [markdown]
+# The dataset showed 6 final possible states for a campaign. Since we
+# were only interested in whether a campaign succeeded or failed, we 
+# created a subset that only contained rows reflecting these outcomes
+# (called "kickstarter1"). We then calculated the duration of the campaign
+# by finding the difference between the date launched and the deadline 
+# date. We changed the relevant variable from the default object
+# data type to categorical. Finally we created a subset called "kickstarter_final"
+# containing only the variables we were going to consider (main_category, currency, state, backers, country,
+# usd_pledged_real, usd_goal_real, Duration). The subcategories would have
+# likely introduced multicollinearity with the main_categories, and it make
+# more sense to evaluate the funding goals and pledges converted to all 
+# US dollars since there were many currency types included in the dataset.
 # %%
 
 # subset for just failed or success, reduces set to 331675 rows with 15 variables
@@ -86,7 +107,9 @@ print(kickstarter_final)
 #%% [markdown]
 
 ## 2. Exploratory Data Analysis
-
+# The exploratory Data Analysis aimed to understand the shape of the dataset
+# and guide the modeling process. This included summary statistics and 
+# multiple graph types to understand the relationships between the variables.
 # %%
 # summary stats (for all countries)
 # Describe continuous variables
@@ -96,7 +119,7 @@ print(kickstarter_final[['backers', 'usd_goal_real', 'usd_pledged_real', 'Durati
 print(kickstarter_final[['main_category', 'state', 'currency', 'country']].apply(lambda x: x.describe(include='all')).T)
 
 #%%
-# distribution of failed vs success
+# distribution of failed vs success - more likely to fail than succeed.
 
 distribution = kickstarter_final['state'].value_counts()
 print(distribution)
@@ -156,6 +179,12 @@ plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
 
+# In the first 2 graphs, you can see the total number of projects in the 
+# US far exceed that of any other country. In the third, you can the overall
+# distribution of projects in the various categories, as well as failure
+# versus success rate for those categories. some have appreciably better rates
+# of success like dance and theater, while other have appreciably worse rates
+# of success like journalism and technology. 
 #%% 
 # top 5 categories (based on percentage of successful projects in the category)
 
@@ -389,7 +418,7 @@ print(f"Number of outliers removed: {num_outliers_removed}")
 #%% [markdown]
 
 ## 3. Classification Decision Tree Training, Fit, Analysis, and Evaluation
-
+# To create the decision tree, we 
 # %%
 # create a training set
 
@@ -403,11 +432,11 @@ y_trainkickstarter = train_set['state']
 
 X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
 
-dtree_kickstarter = DecisionTreeClassifier(max_depth = 8, criterion = 'gini', random_state = 1)
+dtree_kickstarter8 = DecisionTreeClassifier(max_depth = 8, criterion = 'gini', random_state = 1)
 
-dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
+dtree_kickstarter8.fit(X_trainkickstarter, y_trainkickstarter)
 
-y_trainkickstarter_pred = dtree_kickstarter.predict(X_trainkickstarter)
+y_trainkickstarter_pred = dtree_kickstarter8.predict(X_trainkickstarter)
 
 
 training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_trainkickstarter_pred)
@@ -420,11 +449,11 @@ y_trainkickstarter = train_set['state']
 
 X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
 
-dtree_kickstarter = DecisionTreeClassifier(max_depth = 4, criterion = 'gini', random_state = 1)
+dtree_kickstarter4 = DecisionTreeClassifier(max_depth = 4, criterion = 'gini', random_state = 1)
 
-dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
+dtree_kickstarter4.fit(X_trainkickstarter, y_trainkickstarter)
 
-y_trainkickstarter_pred = dtree_kickstarter.predict(X_trainkickstarter)
+y_trainkickstarter_pred = dtree_kickstarter4.predict(X_trainkickstarter)
 
 
 training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_trainkickstarter_pred)
@@ -515,25 +544,35 @@ plt.show()
 #%%
 
 #plot the tree
-
+# max depth 8
 plt.figure(figsize=(12,8))
-plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
-plt.title('Decision Tree for Kickstarter Campaign Outcomes')
+plot_tree(dtree_kickstarter8, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter8.classes_, filled=True, rounded=True)
+plt.title('Decision Tree for Kickstarter Campaign Outcomes (max depth 8)')
 plt.show()
 
-n_terminal_nodes = sum(dtree_kickstarter.tree_.children_left == -1)
+n_terminal_nodes = sum(dtree_kickstarter8.tree_.children_left == -1)
+print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
+ # max depth 4
+plt.figure(figsize=(12,8))
+plot_tree(dtree_kickstarter4, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter4.classes_, filled=True, rounded=True)
+plt.title('Decision Tree for Kickstarter Campaign Outcomes (max depth 4)')
+plt.show()
+
+n_terminal_nodes = sum(dtree_kickstarter4.tree_.children_left == -1)
 print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
 
 #%%
 
 # Generate a text summary of the tree
-tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
-print(tree_rules)
+tree_rules8 = export_text(dtree_kickstarter8, feature_names=X_trainkickstarter.columns.tolist())
+print(tree_rules8)
 
+tree_rules4 = export_text(dtree_kickstarter4, feature_names=X_trainkickstarter.columns.tolist())
+print(tree_rules4)
 #%%
 
 #predict response on the test data and produce confusion matrix
-
+# max depth 8
 X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
 
 # Align test set columns with training set columns
@@ -542,19 +581,40 @@ X_testkickstarter = X_testkickstarter.reindex(columns=X_trainkickstarter.columns
 y_testkickstarter = test_set['state']
 
 
-y_testkickstarter_pred = dtree_kickstarter.predict(X_testkickstarter)
+y_testkickstarter_pred = dtree_kickstarter8.predict(X_testkickstarter)
 
 conf_matrix = confusion_matrix(y_testkickstarter, y_testkickstarter_pred)
 
-sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter.classes_, yticklabels=dtree_kickstarter.classes_)
+sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter8.classes_, yticklabels=dtree_kickstarter.classes_)
 plt.xlabel('Predicted')
 plt.ylabel('Actual')
-plt.title('Confusion Matrix for Test Set')
+plt.title('Confusion Matrix for Test Set (max depth 8)')
 plt.show()
 
 test_error_rate = 1 - accuracy_score(y_testkickstarter, y_testkickstarter_pred)
 print(f"Test error rate: {test_error_rate:.4f}")
 
+# max depth 4
+X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
+
+# Align test set columns with training set columns
+X_testkickstarter = X_testkickstarter.reindex(columns=X_trainkickstarter.columns, fill_value=0)
+
+y_testkickstarter = test_set['state']
+
+
+y_testkickstarter_pred = dtree_kickstarter4.predict(X_testkickstarter)
+
+conf_matrix = confusion_matrix(y_testkickstarter, y_testkickstarter_pred)
+
+sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter4.classes_, yticklabels=dtree_kickstarter.classes_)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix for Test Set (max depth 4)')
+plt.show()
+
+test_error_rate = 1 - accuracy_score(y_testkickstarter, y_testkickstarter_pred)
+print(f"Test error rate: {test_error_rate:.4f}")
 # %%
 # checking for best depth - although better fits a higher depth, tree becomes very complex and potentially overfit
 maxlevels = [None, 2, 3, 4, 5, 6, 7, 8]
