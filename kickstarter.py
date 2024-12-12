@@ -346,6 +346,19 @@ plt.legend(title='Goal (USD)', fontsize=12, title_fontsize=14, loc='center')
 plt.tight_layout()
 plt.show()
 
+#%%
+
+# Boxplot showing distribution of goal amounts 
+plt.figure(figsize=(12, 8))
+sns.boxplot(data=kickstarter_final, x='main_category', y='usd_goal_real', palette='coolwarm')
+plt.title('Goal Amounts by Category', fontsize = 14)
+plt.ylabel('Goal Amount (USD)', fontsize = 12)
+plt.xlabel('Main Category', fontsize = 12)
+plt.yscale('log')  # To handle wide ranges
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
 #%% 
 
 
