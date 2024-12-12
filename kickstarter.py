@@ -398,7 +398,7 @@ y_trainkickstarter = train_set['state']
 
 X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
 
-dtree_kickstarter = DecisionTreeClassifier(max_depth = 8, criterion = 'gini', random_state = 1)
+dtree_kickstarter = DecisionTreeClassifier(max_depth = 4, criterion = 'gini', random_state = 1)
 
 dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
 
@@ -409,7 +409,93 @@ training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_train
 
 print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
 
-# this is overfit
+#%%
+# Comparison of cross validations to find best depth
+from sklearn.model_selection import cross_val_score
+from sklearn.tree import DecisionTreeClassifier
+from scipy.stats import ttest_rel
+import pandas as pd
+
+# Assuming you have already loaded your data and done the necessary preprocessing
+X_trainkickstarter = train_set.drop(columns=['state'])
+y_trainkickstarter = train_set['state']
+
+X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
+
+# Cross-validation for max_depth=3
+dtree_depth3 = DecisionTreeClassifier(max_depth=3, criterion='gini', random_state=1)
+scores_depth3 = cross_val_score(dtree_depth3, X_trainkickstarter, y_trainkickstarter, cv=5)
+
+# Cross-validation for max_depth=4
+dtree_depth4 = DecisionTreeClassifier(max_depth=4, criterion='gini', random_state=1)
+scores_depth4 = cross_val_score(dtree_depth4, X_trainkickstarter, y_trainkickstarter, cv=5)
+
+dtree_depth5 = DecisionTreeClassifier(max_depth=5, criterion='gini', random_state=1)
+scores_depth5 = cross_val_score(dtree_depth5, X_trainkickstarter, y_trainkickstarter, cv=5)
+
+t_stat, p_value = ttest_rel(scores_depth3, scores_depth4)
+
+print(f"Scores for max_depth=3: {scores_depth3}")
+print(f"Scores for max_depth=4: {scores_depth4}")
+print(f"T-statistic: {t_stat:.4f}, P-value: {p_value:.4f}")
+
+# Check if the difference is significant (typically, p < 0.05)
+if p_value < 0.05:
+    print("The difference in performance is statistically significant.")
+else:
+    print("The difference in performance is not statistically significant.")
+
+# Perform paired t-test
+t_stat, p_value = ttest_rel(scores_depth4, scores_depth5)
+
+print(f"Scores for max_depth=4: {scores_depth4}")
+print(f"Scores for max_depth=5: {scores_depth5}")
+print(f"T-statistic: {t_stat:.4f}, P-value: {p_value:.4f}")
+
+# Check if the difference is significant (typically, p < 0.05)
+if p_value < 0.05:
+    print("The difference in performance is statistically significant.")
+else:
+    print("The difference in performance is not statistically significant.")
+
+#%%
+from sklearn.model_selection import validation_curve
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Define parameter range
+param_range = np.arange(1, 15)
+
+# Calculate training and validation scores
+train_scores, test_scores = validation_curve(
+    DecisionTreeClassifier(random_state=1),
+    X_trainkickstarter, y_trainkickstarter,
+    param_name="max_depth",
+    param_range=param_range,
+    cv=5,
+    scoring="accuracy"
+)
+
+# Calculate mean and standard deviation for training and test scores
+train_mean = np.mean(train_scores, axis=1)
+train_std = np.std(train_scores, axis=1)
+test_mean = np.mean(test_scores, axis=1)
+test_std = np.std(test_scores, axis=1)
+
+# Plot validation curve
+plt.plot(param_range, train_mean, label="Training score", color="black")
+plt.plot(param_range, test_mean, label="Cross-validation score", color="dimgrey")
+
+plt.fill_between(param_range, train_mean - train_std, train_mean + train_std, color="gray", alpha=0.2)
+plt.fill_between(param_range, test_mean - test_std, test_mean + test_std, color="gray", alpha=0.2)
+
+plt.title("Validation Curve with Decision Tree")
+plt.xlabel("Max Depth")
+plt.ylabel("Accuracy")
+plt.legend(loc="best")
+plt.show()
+
+
 #%%
 
 #plot the tree
@@ -861,3 +947,23 @@ plt.figure(figsize=(6, 6))
 plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
 plt.title('Distribution of Projects: Zero Backers vs 1+ Backers')
 plt.show()
+#%%
+from sklearn.model_selection import cross_val_score
+from sklearn.tree import DecisionTreeClassifier
+import numpy as np
+
+# Assuming you have a DataFrame df with features X and target y
+X = kickstarter_final.drop('state', axis=1)
+y = kickstarter_final['state']
+
+# Initialize the Decision Tree Classifier
+tree = DecisionTreeClassifier()
+
+# Perform cross-validation
+cv_scores = cross_val_score(tree, X, y, cv=5)
+
+# Print the average cross-validation score
+print(f'Average Cross-Validation Score: {np.mean(cv_scores)}')
+
+
+# %%
