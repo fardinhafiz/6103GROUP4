@@ -5,26 +5,49 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns #optional
 import statsmodels.formula.api as smf
+from sklearn.model_selection import train_test_split
+import matplotlib.colors as mcolors
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.tree import plot_tree
+from sklearn.tree import export_text
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.linear_model import LogisticRegression
+from statsmodels.formula.api import glm
+from sklearn.metrics import classification_report
+from sklearn.metrics import roc_auc_score, roc_curve
+import time
+from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.tree import export_text
+
 
 #%%
+# read in the dataset 
 
 kickstarter = pd.read_csv("ks-projects-201801.csv")
 
 print("\nReady to continue.")
 # %%
-
+# first 5 rows 
 kickstarter.head()
 # %%
+# check datatypes 
 kickstarter.info()
 
+# check unique values for 'state' and 'main_category'
 kickstarter['state'].unique()
 kickstarter['main_category'].unique()
 
 # %%
+
+# subset for just failed or success, reduces set to 331675 rows with 15 variables
+
 kickstarter1 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
 print(kickstarter1)
-# subset for just failed or success, reduces set to 331675 rows with 15 variables
+
 # %%
+
 #add duration of campain (difference between launch date and deadline)
 kickstarter1['launched'] = pd.to_datetime(kickstarter1['launched']).dt.date
 
@@ -39,7 +62,6 @@ print(kickstarter1[['launched', 'deadline', 'Duration']])
 # %%
 
 # change the objects to factors
-
 kickstarter1['main_category'] = kickstarter1['main_category'].astype('category')
 kickstarter1['currency'] = kickstarter1['currency'].astype('category')
 kickstarter1['state'] = kickstarter1['state'].astype('category')
@@ -52,14 +74,14 @@ kickstarter1.info()
 
 kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'usd_pledged_real', 'usd_goal_real', 'Duration']]
 print(kickstarter_final)
+
 # %%
-# summary stats (for all countries )
+# summary stats (for all countries)
 # Describe continuous variables
 print(kickstarter_final[['backers', 'usd_goal_real', 'usd_pledged_real', 'Duration']].describe())
 
 # Describe categorical variables
-print(kickstarter_final[['main_category', 'state']].apply(lambda x: x.describe(include='all')).T)
-
+print(kickstarter_final[['main_category', 'state', 'currency', 'country']].apply(lambda x: x.describe(include='all')).T)
 
 #%% 
 # correlation plot for dataframe for all countries 
@@ -98,28 +120,6 @@ plt.pie(
     startangle=90, 
     colors=['red', 'green'])
 plt.title('Distribution of Kickstarter Project Outcomes')
-plt.show()
-
-
-#%% 
-# percent failed vs percent success pie chart
-
-succ_fail_counts = kickstarter_final['state'].value_counts()
-
-# Data for the pie chart
-labels = succ_fail_counts.index
-sizes = succ_fail_counts.values
-
-# Create pie chart
-plt.pie(sizes, labels=labels, colors = ['red', 'green'], autopct='%1.1f%%', startangle=140)
-
-# Equal aspect ratio ensures that pie is drawn as a circle.
-plt.axis('equal')
-
-# Add title
-plt.title('Observations: Success vs Failed')
-
-# Show the plot
 plt.show()
 
 #%% 
@@ -161,8 +161,8 @@ plt.tight_layout()
 # Show the second plot
 plt.show()
 
-
 # %%
+
 # state by country, currency, and category
 grouped_country = kickstarter_final.groupby(['country', 'state']).size().unstack()
 
@@ -197,19 +197,6 @@ plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
 
-#%%
-# Top 5 categories with the highest number of successes:
-top_categories = (
-    kickstarter_final[kickstarter_final['state'] == 'successful']
-    .groupby('main_category')
-    .size()
-    .sort_values(ascending=False)
-    .head(5)
-)
-
-print("Top 5 Categories with the Highest Number of Successful Projects:")
-print(top_categories)
-
 #%% 
 # top 5 categories (based on percentage of successful projects in the category)
 
@@ -222,31 +209,11 @@ success_percentage = (successful_projects_per_category / total_projects_per_cate
 # Get the top categories with the highest percentage of successful projects
 top_categories_percentage = success_percentage.sort_values(ascending=False).head(5)
 
-print("Top 5 categories with the Highest Percentage of Successful Projects ")
+print("Top 5 categories with the Highest Percentage of Successful Projects (all countries)")
 print(top_categories_percentage)
-
-#%%
-# Barplot showing top 5 categories
-colors = ['lightblue', 'salmon', 'lightgreen', 'wheat', 'violet']  
-
-# Plot the top 5 categories with individual bar colors
-top_categories.plot(kind='bar', color=colors, figsize=(10, 6))
-plt.title('Top 5 Categories with the Most Successful Projects', fontsize= 14)
-plt.ylabel('Number of Successful Projects')
-plt.xlabel('Main Category')
-plt.xticks(rotation=35, ha='right', fontsize = 13)
-
-#Adding the values on to each bar
-for index, value in enumerate(top_categories):
-    plt.text(index, value + 100, str(value), ha='center', va='bottom', fontsize=10)
-
-plt.tight_layout()
-plt.show()
 
 #%% 
 # using median goal instead of mean goal
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 
 # Calculate the total number of projects per category
 total_projects_per_category_all = kickstarter_final.groupby('main_category').size()
@@ -272,13 +239,76 @@ colors = plt.cm.coolwarm(norm(median_goal_per_category[sorted_success_percentage
 
 fig, ax = plt.subplots(figsize=(12, 8))
 sorted_success_percentage_all.plot(kind='bar', color=colors, ax=ax)
-plt.title('Percentage of Successful Projects in Each Category', fontsize=14)
+plt.title('Percentage of Successful Projects in Each Category (all countries included)', fontsize=14)
 plt.ylabel('Percent of Successful Projects (%)')
 plt.xlabel('Main Category')
 plt.xticks(rotation=45, ha='right', fontsize=10)
 
 # Adding the values onto each bar
 for index, value in enumerate(sorted_success_percentage_all):
+    ax.text(index, value + 0.5, f'{round(value, 2)}%', ha='center', va='bottom', fontsize=10)
+
+# Create a colorbar
+sm = plt.cm.ScalarMappable(cmap=plt.cm.coolwarm, norm=norm)
+sm.set_array([])
+cbar = plt.colorbar(sm, ax=ax)
+cbar.set_label('Median Goal (USD)')
+
+plt.tight_layout()
+plt.show()
+
+#%% 
+# top 5 categories percentage (US only)
+
+us_kickstarter_final = kickstarter_final[kickstarter_final['country'] == 'US']
+
+total_projects_per_category_us = us_kickstarter_final.groupby('main_category').size()
+successful_projects_per_category_us = us_kickstarter_final[kickstarter_final['state'] == 'successful'].groupby('main_category').size()
+
+# Calculate the percentage of successful projects
+success_percentage_us = (successful_projects_per_category_us / total_projects_per_category_us) * 100
+
+# Get the top categories with the highest percentage of successful projects
+top_categories_percentage_us = success_percentage_us.sort_values(ascending=False).head(5)
+
+print("Top 5 categories with the Highest Percentage of Successful Projects (all countries)")
+print(top_categories_percentage_us)
+
+# using median goal instead of mean goal
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+
+# Calculate the total number of projects per category
+total_projects_us = us_kickstarter_final.groupby('main_category').size()
+
+# Calculate the total number of successful projects per category
+successful_projects_us = us_kickstarter_final[us_kickstarter_final['state'] == 'successful'].groupby('main_category').size()
+
+# Calculate the percentage of successful projects
+successful_projects_us = (successful_projects_us / total_projects_us) * 100
+
+# Sort the categories by their success percentages
+sorted_success_percentage_us = successful_projects_us.sort_values(ascending=False)
+
+print("Percentage of Successful Projects per Category")
+print(sorted_success_percentage_us)
+
+# Median goal per category 
+median_goal_per_category_us = us_kickstarter_final.groupby('main_category')['usd_goal_real'].median()
+
+# Normalize funding goals for color mapping
+norm = mcolors.Normalize(vmin=median_goal_per_category_us.min(), vmax=median_goal_per_category_us.max())
+colors = plt.cm.coolwarm(norm(median_goal_per_category_us[sorted_success_percentage_us.index]))
+
+fig, ax = plt.subplots(figsize=(12, 8))
+sorted_success_percentage_us.plot(kind='bar', color=colors, ax=ax)
+plt.title('Percentage of Successful Projects in Each Category (US only)', fontsize=14)
+plt.ylabel('Percent of Successful Projects (%)')
+plt.xlabel('Main Category')
+plt.xticks(rotation=45, ha='right', fontsize=10)
+
+# Adding the values onto each bar
+for index, value in enumerate(sorted_success_percentage_us):
     ax.text(index, value + 0.5, f'{round(value, 2)}%', ha='center', va='bottom', fontsize=10)
 
 # Create a colorbar
@@ -316,8 +346,21 @@ plt.legend(title='Goal (USD)', fontsize=12, title_fontsize=14, loc='center')
 plt.tight_layout()
 plt.show()
 
+#%%
+
+# Boxplot showing distribution of goal amounts 
+plt.figure(figsize=(12, 8))
+sns.boxplot(data=kickstarter_final, x='main_category', y='usd_goal_real', palette='coolwarm')
+plt.title('Goal Amounts by Category', fontsize = 14)
+plt.ylabel('Goal Amount (USD)', fontsize = 12)
+plt.xlabel('Main Category', fontsize = 12)
+plt.yscale('log')  # To handle wide ranges
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
 #%% 
-import matplotlib.pyplot as plt
+
 
 # Separate the data based on state
 successful_goals = kickstarter_final[kickstarter_final['state'] == 'successful']['usd_goal_real']
@@ -340,26 +383,35 @@ plt.ylabel('Frequency')
 plt.title('Histogram of Goal Amounts for Failed Projects')
 plt.show()
 
+#%%
 
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=kickstarter_final, x='usd_goal_real', y='backers', hue='state', palette='viridis', alpha=0.7)
+
+# Customizing the plot
+plt.title('Scatterplot of Backers vs Goal Colored by State')
+plt.xlabel('Goal (use_goal_real)')
+plt.ylabel('Backers')
+plt.legend(title='State', loc='upper right')
+plt.grid(True)
+
+# Show the plot
+plt.show()
 
 # %%
 # create a training set
-
-from sklearn.model_selection import train_test_split
 
 train_set, test_set = train_test_split(kickstarter_final, train_size=800, random_state=42)
 
 #%%
 #fit tree to training data
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
 
 X_trainkickstarter = train_set.drop(columns=['state'])
 y_trainkickstarter = train_set['state']
 
 X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
 
-dtree_kickstarter = DecisionTreeClassifier(max_depth = 8, criterion = 'gini', random_state = 1)
+dtree_kickstarter = DecisionTreeClassifier(max_depth = 4, criterion = 'gini', random_state = 1)
 
 dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
 
@@ -371,11 +423,95 @@ training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_train
 print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
 
 #%%
+# Comparison of cross validations to find best depth
+from sklearn.model_selection import cross_val_score
+from sklearn.tree import DecisionTreeClassifier
+from scipy.stats import ttest_rel
+import pandas as pd
+
+# Assuming you have already loaded your data and done the necessary preprocessing
+X_trainkickstarter = train_set.drop(columns=['state'])
+y_trainkickstarter = train_set['state']
+
+X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
+
+# Cross-validation for max_depth=3
+dtree_depth3 = DecisionTreeClassifier(max_depth=3, criterion='gini', random_state=1)
+scores_depth3 = cross_val_score(dtree_depth3, X_trainkickstarter, y_trainkickstarter, cv=5)
+
+# Cross-validation for max_depth=4
+dtree_depth4 = DecisionTreeClassifier(max_depth=4, criterion='gini', random_state=1)
+scores_depth4 = cross_val_score(dtree_depth4, X_trainkickstarter, y_trainkickstarter, cv=5)
+
+dtree_depth5 = DecisionTreeClassifier(max_depth=5, criterion='gini', random_state=1)
+scores_depth5 = cross_val_score(dtree_depth5, X_trainkickstarter, y_trainkickstarter, cv=5)
+
+t_stat, p_value = ttest_rel(scores_depth3, scores_depth4)
+
+print(f"Scores for max_depth=3: {scores_depth3}")
+print(f"Scores for max_depth=4: {scores_depth4}")
+print(f"T-statistic: {t_stat:.4f}, P-value: {p_value:.4f}")
+
+# Check if the difference is significant (typically, p < 0.05)
+if p_value < 0.05:
+    print("The difference in performance is statistically significant.")
+else:
+    print("The difference in performance is not statistically significant.")
+
+# Perform paired t-test
+t_stat, p_value = ttest_rel(scores_depth4, scores_depth5)
+
+print(f"Scores for max_depth=4: {scores_depth4}")
+print(f"Scores for max_depth=5: {scores_depth5}")
+print(f"T-statistic: {t_stat:.4f}, P-value: {p_value:.4f}")
+
+# Check if the difference is significant (typically, p < 0.05)
+if p_value < 0.05:
+    print("The difference in performance is statistically significant.")
+else:
+    print("The difference in performance is not statistically significant.")
+
+#%%
+from sklearn.model_selection import validation_curve
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Define parameter range
+param_range = np.arange(1, 15)
+
+# Calculate training and validation scores
+train_scores, test_scores = validation_curve(
+    DecisionTreeClassifier(random_state=1),
+    X_trainkickstarter, y_trainkickstarter,
+    param_name="max_depth",
+    param_range=param_range,
+    cv=5,
+    scoring="accuracy"
+)
+
+# Calculate mean and standard deviation for training and test scores
+train_mean = np.mean(train_scores, axis=1)
+train_std = np.std(train_scores, axis=1)
+test_mean = np.mean(test_scores, axis=1)
+test_std = np.std(test_scores, axis=1)
+
+# Plot validation curve
+plt.plot(param_range, train_mean, label="Training score", color="black")
+plt.plot(param_range, test_mean, label="Cross-validation score", color="dimgrey")
+
+plt.fill_between(param_range, train_mean - train_std, train_mean + train_std, color="gray", alpha=0.2)
+plt.fill_between(param_range, test_mean - test_std, test_mean + test_std, color="gray", alpha=0.2)
+
+plt.title("Validation Curve with Decision Tree")
+plt.xlabel("Max Depth")
+plt.ylabel("Accuracy")
+plt.legend(loc="best")
+plt.show()
+
+
+#%%
 
 #plot the tree
-
-import matplotlib.pyplot as plt
-from sklearn.tree import plot_tree
 
 plt.figure(figsize=(12,8))
 plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
@@ -387,8 +523,6 @@ print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
 
 #%%
 
-from sklearn.tree import export_text
-
 # Generate a text summary of the tree
 tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
 print(tree_rules)
@@ -397,9 +531,7 @@ print(tree_rules)
 
 #predict response on the test data and produce confusion matrix
 
-from sklearn.metrics import confusion_matrix, accuracy_score
-import seaborn as sns
-import matplotlib.pyplot as plt
+
 
 X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
 
@@ -434,12 +566,9 @@ for l in maxlevels:
 
 # %%
 
-from sklearn.linear_model import LogisticRegression
-from statsmodels.formula.api import glm
-from sklearn.metrics import classification_report
-
 # Logistic Regression Model
 # Features selected: backers, usd_pledged_real, main_category
+
 X = pd.get_dummies(kickstarter_final[['backers', 'usd_pledged_real', 'main_category']], drop_first=True)
 y = (kickstarter_final['state'] == 'successful').astype(int) 
 
@@ -460,7 +589,6 @@ coefficients = pd.DataFrame({
     'Odds Ratio': np.exp(model.coef_[0])
 })
 print("\nCoefficients and Odds Ratios:\n", coefficients)
-
 
 # Predictions and Evaluation
 y_pred = model.predict(X_test)
@@ -561,7 +689,6 @@ print(f"False Negative Rate (FNR) at threshold 0.3: {new_FNR*100:.2f}%")
 # %%
 
 # Creating ROC curve with AUC for logistic model
-from sklearn.metrics import roc_auc_score, roc_curve
 
 y_prob = model.predict_proba(X_test)[:, 1]
 roc_auc = roc_auc_score(y_test, y_prob) # evaluating AUC
@@ -583,176 +710,52 @@ plt.title('ROC Curve')
 plt.show()
 
 # %%
-### logistic model (only US and using goal instead of pledged)
-
-# subset out failed/successful
-kickstarter2 = kickstarter[kickstarter['state'].isin(['failed', 'successful'])]
-
-#subset out only US projects 
-kickstarter2 = kickstarter2[kickstarter['country'].isin(['US'])]
-
-#rename film category 
-kickstarter2['main_category'] = kickstarter2['main_category'].replace({'Film & Video': 'Film_and_Video'})
-
-# Add duration of campaign (difference between launch date and deadline)
-kickstarter2['launched'] = pd.to_datetime(kickstarter2['launched']).dt.date
-kickstarter2['deadline'] = pd.to_datetime(kickstarter2['deadline']).dt.date
-kickstarter2['Duration'] = (pd.to_datetime(kickstarter2['deadline']) - pd.to_datetime(kickstarter2['launched'])).dt.days
-
-# Convert categorical columns to category type
-for col in ['main_category', 'currency', 'state']:
-    kickstarter2[col] = kickstarter2[col].astype('category')
+# prep US only stuff 
 
 # Create final dataframe with selected columns
-kickstarter_final_US = kickstarter2[['main_category', 'currency', 'state', 'backers', 'Duration', 'usd_goal_real']]
+kickstarter_final_US = kickstarter_final.copy()
 
-# Add dummy variables for categorical columns
-kickstarter_final_US = pd.get_dummies(kickstarter_final_US, columns=['main_category', 'currency'], drop_first=True)
+#subset out US 
+kickstarter_final_US = kickstarter_final_US[kickstarter_final_US['country'] == 'US']
 
-# split into features and target variables 
-selected_features_us = ["backers", "usd_goal_real", "main_category_Comics", "main_category_Crafts", "main_category_Dance", "main_category_Design", "main_category_Fashion", "main_category_Film_and_Video", "main_category_Food", "main_category_Games", "main_category_Journalism", "main_category_Music", "main_category_Photography", "main_category_Publishing", "main_category_Technology", "main_category_Theater", "Duration"]
+#rename film category 
+kickstarter_final_US['main_category'] = kickstarter_final_US['main_category'].replace({'Film & Video': 'Film_and_Video'})
 
-x_us = kickstarter_final_US[selected_features_us]
-y_us = kickstarter_final_US['state']
+kickstarter_final_US = kickstarter_final_US.drop(['currency', 'country'], axis = 1)
 
-# Split into training and test sets
-x_us_train, x_us_test, y_us_train, y_us_test = train_test_split(x_us, y_us, test_size=0.2, random_state=42)
-
-# Initialize the logistic regression model
-logreg_us_model = LogisticRegression(max_iter=5000)
-
-logreg_us_model.fit(x_us_train, y_us_train)
-
-# Model Accuracy
-print('Logit model accuracy (train set):', logreg_us_model.score(x_us_train, y_us_train))
-print('Logit model accuracy (test set):', logreg_us_model.score(x_us_test, y_us_test))
-
-coefficients_us = pd.DataFrame({
-    'Predictors': x_us.columns,
-    'Coefficient': logreg_us_model.coef_[0],
-    'Odds Ratio': np.exp(logreg_us_model.coef_[0])
-})
-print("\nCoefficients and Odds Ratios:\n", coefficients_us)
-
-# Predictions and Evaluation
-y_pred_us = logreg_us_model.predict(x_us_test)
-
-conf_matrix_us = confusion_matrix(y_us_test, y_pred_us)
-accuracy_us = accuracy_score(y_us_test, y_pred_us)
-
-print("\n The confusion matrix of the model is:")
-print(conf_matrix_us)
-
-print("\n The accuracy of the model is:")
-print(accuracy_us)
-
-print("\n The model's classification Report:")
-print(classification_report(y_us_test, y_pred_us))
-
-# ROC curve with AUC for logistic model
-y_pred_prob_us = logreg_us_model.predict_proba(x_us_test)[:, 1]
-roc_auc_us = roc_auc_score(y_us_test, y_pred_prob_us) # evaluating AUC
-
-print(f"\n The area under the curve is found to be {roc_auc_us:.3f}.")
-
-y_us_test_mapped = y_us_test.map({'failed': 0, 'successful': 1})
-
-fpr, tpr, thresholds = roc_curve(y_us_test_mapped, y_pred_prob_us)
-plt.plot(fpr, tpr, label=f"AUC = {roc_auc_us:.3f}")
-
-# Shading the AUC
-plt.fill_between(fpr, tpr, color='skyblue', alpha=0.3)
-
-# Text with AUC value inside the plot
-plt.text(0.4, 0.5, f'AUC = {roc_auc_us:.3f}', fontsize=12)
-
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curve')
-plt.show()
-# %%
-
-kickstarter_final_US['state_binary'] = kickstarter_final_US['state'].map({'failed': 0, 'successful': 1})
-kickstarter_final_US['state_binary'] = kickstarter_final_US['state_binary'].astype(int)
-
-# Split the data into training and testing sets
-train_df_stats, test_df_stats = train_test_split(kickstarter_final_US, test_size=0.2, random_state=42)
-
-# Define the formula for logistic regression
-formula = 'state_binary ~ backers + usd_goal_real + main_category_Comics + main_category_Crafts + main_category_Dance + main_category_Design + main_category_Fashion + main_category_Film_and_Video + main_category_Food + main_category_Games + main_category_Journalism + main_category_Music + main_category_Photography + main_category_Publishing + main_category_Technology + main_category_Theater + Duration'
-
-# Fit the logistic regression model
-stats_model_us = smf.logit(formula, data=train_df_stats).fit()
-
-# Make predictions on the test data
-test_df_stats['predicted'] = stats_model_us.predict(test_df_stats)
-test_df_stats['predicted_class'] = (test_df_stats['predicted'] > 0.5).astype(int)
-
-# Evaluate the model's performance
-accuracy_stats_us = accuracy_score(test_df_stats['state_binary'], test_df_stats['predicted_class'])
-conf_matrix_stats_us = confusion_matrix(test_df_stats['state_binary'], test_df_stats['predicted_class'])
-class_report_stats_us = classification_report(test_df_stats['state_binary'], test_df_stats['predicted_class'])
-
-print(f'Accuracy: {accuracy_stats_us}')
-print('Confusion Matrix:')
-print(conf_matrix_stats_us)
-print('Classification Report:')
-print(class_report_stats_us)
-
-# Display the model summary
-print(stats_model_us.summary())
-
-
+#%%
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import statsmodels.formula.api as smf
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-# Extract the independent variables from the training data
-independent_vars_for_vif = train_df_stats[['backers', 'usd_goal_real', 'main_category_Comics', 'main_category_Crafts', 
-                                   'main_category_Dance', 'main_category_Design', 'main_category_Fashion', 
-                                   'main_category_Film_and_Video', 'main_category_Food', 'main_category_Games', 
-                                   'main_category_Journalism', 'main_category_Music', 'main_category_Photography', 
-                                   'main_category_Publishing', 'main_category_Technology', 'main_category_Theater', 
-                                   'Duration']]
+#binary state
+kickstarter_us_binary = kickstarter_final_US.copy()
+kickstarter_us_binary['state_binary'] = kickstarter_us_binary['state'].map({'failed': 0, 'successful': 1})
+kickstarter_us_binary['state_binary'] = kickstarter_us_binary['state_binary'].astype(int)
 
-# Convert boolean variables to integers
-independent_vars_for_vif = independent_vars_for_vif.applymap(lambda x: int(x) if isinstance(x, bool) else x)
+kickstarter_us_binary = kickstarter_us_binary.drop(['state'], axis = 1)
 
-# Ensure all data types are numeric
-independent_vars_for_vif = independent_vars_for_vif.apply(pd.to_numeric, errors='coerce')
-
-# Create a DataFrame to store VIF values
-vif_data = pd.DataFrame()
-vif_data['Feature'] = independent_vars_for_vif.columns
-vif_data['VIF'] = [variance_inflation_factor(independent_vars_for_vif.values, i) for i in range(len(independent_vars_for_vif.columns))]
-
-print(vif_data)
-
-
-#%% 
-
-# take sample of dataset and do feature selection
-# fit the model to full dataset
-import time
-from mlxtend.feature_selection import SequentialFeatureSelector as SFS
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
+# Dummy variables
+kickstarter_us_binary = pd.get_dummies(kickstarter_us_binary, columns=['main_category'], drop_first=True)
 
 # Sample a smaller subset (e.g., 5% of the data) for faster feature selection
 def sample_data(df, frac=0.05, random_state=42):
-    return kickstarter_final_US.sample(frac=frac, random_state=random_state)
+    return kickstarter_us_binary.sample(frac=frac, random_state=random_state)
 
 # Helper function to print timings
 def print_timing(message, start_time):
     print(f'{message}: {time.time() - start_time:.2f} seconds')
 
 # Prepare the data
-train_df_select, test_df_select = train_test_split(kickstarter_final_US, test_size=0.2, random_state=42)
-x_us_select = train_df_select.drop(columns=['state_binary', 'state'], axis=1)
+train_df_select, test_df_select = train_test_split(kickstarter_us_binary, test_size=0.2, random_state=42)
+x_us_select = train_df_select.drop(columns=['state_binary'], axis=1)
 y_us_select = train_df_select['state_binary']
 
 # Sample 5% of the training data for feature selection
 sampled_train_df = sample_data(train_df_select, frac=0.05)
-x_sampled_us_select = sampled_train_df.drop(columns=['state_binary', 'state'], axis=1)
+x_sampled_us_select = sampled_train_df.drop(columns=['state_binary'], axis=1)
 y_sampled_us_select = sampled_train_df['state_binary']
 
 logistic_model = LogisticRegression(max_iter=5000)
@@ -792,174 +795,162 @@ print(f'Accuracy: {accuracy_us_select}')
 evaluation_time = time.time() - start_time
 print_timing("Model evaluation time", start_time)
 
-#%%
-# try tree without pledge 
+import numpy as np
+import pandas as pd
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-# create a training set
+# Convert boolean columns to integers
+def convert_boolean_to_int(data):
+    bool_cols = data.select_dtypes(include=['bool']).columns
+    data[bool_cols] = data[bool_cols].astype(int)
+    return data
 
-from sklearn.model_selection import train_test_split
+# Calculating VIF with NaN, Infinity checks, and boolean conversion
+def calculate_vif(data):
+    # Convert boolean columns to integers
+    data = convert_boolean_to_int(data)
 
-train_set, test_set = train_test_split(kickstarter_final, train_size=800, random_state=42)
+    # Convert data to numeric and handle errors
+    data = data.apply(pd.to_numeric, errors='coerce')
 
-#fit tree to training data
-from sklearn.tree import DecisionTreeClassifier
+    vif_data = pd.DataFrame()
+    vif_data["feature"] = data.columns
+    vif_data["VIF"] = [variance_inflation_factor(data.values, i) for i in range(len(data.columns))]
+    return vif_data
 
-from sklearn.metrics import accuracy_score
+# Running VIF on the selected features
+x_selected_us_features_with_vif = x_us_select[selected_features_us]
+vif_df = calculate_vif(x_selected_us_features_with_vif)
+print(vif_df)
 
-X_trainkickstarter = train_set.drop(columns=['state', 'usd_pledged_real'])
-
-y_trainkickstarter = train_set['state']
-
-X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
-
-dtree_kickstarter = DecisionTreeClassifier(max_depth = 5, criterion = 'entropy', random_state = 1)
-
-dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
-
-y_trainkickstarter_pred = dtree_kickstarter.predict(X_trainkickstarter)
-
-
-training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_trainkickstarter_pred)
-
-print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
-
-#plot the tree
-
-import matplotlib.pyplot as plt
-from sklearn.tree import plot_tree
-
-plt.figure(figsize=(12,8))
-plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
-plt.title('Decision Tree for Kickstarter Campaign Outcomes')
-plt.show()
-
-n_terminal_nodes = sum(dtree_kickstarter.tree_.children_left == -1)
-print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
-
-from sklearn.tree import export_text
-
-# Generate a text summary of the tree
-tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
-print(tree_rules)
-
-#predict response on the test data and produce confusion matrix
-
-from sklearn.metrics import confusion_matrix, accuracy_score
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
-
-# Align test set columns with training set columns
-X_testkickstarter = X_testkickstarter.reindex(columns=X_trainkickstarter.columns, fill_value=0)
-
-y_testkickstarter = test_set['state']
-
-
-y_testkickstarter_pred = dtree_kickstarter.predict(X_testkickstarter)
-
-conf_matrix = confusion_matrix(y_testkickstarter, y_testkickstarter_pred)
-
-sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter.classes_, yticklabels=dtree_kickstarter.classes_)
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.title('Confusion Matrix for Test Set')
-plt.show()
-
-test_error_rate = 1 - accuracy_score(y_testkickstarter, y_testkickstarter_pred)
-print(f"Test error rate: {test_error_rate:.4f}")
-
-maxlevels = [None, 2, 3, 5, 8]
-crits = ['gini', 'entropy']
-for l in maxlevels:
-    for c in crits:
-        dt = DecisionTreeClassifier(max_depth = l, criterion = c)
-        dt.fit(X_trainkickstarter, y_trainkickstarter)
-        print(l, c, dt.score(X_testkickstarter, y_testkickstarter))
-        
-#%%
-# try tree without pledge (US only )
-
-# create a training set
-
-from sklearn.model_selection import train_test_split
-
-train_set, test_set = train_test_split(kickstarter_final_US, train_size=800, random_state=42)
-
-#fit tree to training data
-from sklearn.tree import DecisionTreeClassifier
-
-from sklearn.metrics import accuracy_score
-
-X_trainkickstarter = train_set.drop(columns=['state', 'state_binary'])
-
-y_trainkickstarter = train_set['state']
-
-X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
-
-dtree_kickstarter = DecisionTreeClassifier(max_depth = 5, criterion = 'entropy', random_state = 1)
-
-dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
-
-y_trainkickstarter_pred = dtree_kickstarter.predict(X_trainkickstarter)
-
-
-training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_trainkickstarter_pred)
-
-print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
-
-#plot the tree
-
-import matplotlib.pyplot as plt
-from sklearn.tree import plot_tree
-
-plt.figure(figsize=(12,8))
-plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
-plt.title('Decision Tree for Kickstarter Campaign Outcomes')
-plt.show()
-
-n_terminal_nodes = sum(dtree_kickstarter.tree_.children_left == -1)
-print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
-
-from sklearn.tree import export_text
-
-# Generate a text summary of the tree
-tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
-print(tree_rules)
-
-#predict response on the test data and produce confusion matrix
-
-from sklearn.metrics import confusion_matrix, accuracy_score
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
-
-# Align test set columns with training set columns
-X_testkickstarter = X_testkickstarter.reindex(columns=X_trainkickstarter.columns, fill_value=0)
-
-y_testkickstarter = test_set['state']
-
-
-y_testkickstarter_pred = dtree_kickstarter.predict(X_testkickstarter)
-
-conf_matrix = confusion_matrix(y_testkickstarter, y_testkickstarter_pred)
-
-sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter.classes_, yticklabels=dtree_kickstarter.classes_)
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.title('Confusion Matrix for Test Set')
-plt.show()
-
-test_error_rate = 1 - accuracy_score(y_testkickstarter, y_testkickstarter_pred)
-print(f"Test error rate: {test_error_rate:.4f}")
-
-maxlevels = [None, 2, 3, 5, 8]
-crits = ['gini', 'entropy']
-for l in maxlevels:
-    for c in crits:
-        dt = DecisionTreeClassifier(max_depth = l, criterion = c)
-        dt.fit(X_trainkickstarter, y_trainkickstarter)
-        print(l, c, dt.score(X_testkickstarter, y_testkickstarter))
 # %%
+#try us only 
+train_df_stats, test_df_stats = train_test_split(kickstarter_us_binary, test_size=0.2, random_state=42)
 
+# Define the formula for logistic regression
+formula = 'state_binary ~ backers + usd_pledged_real + main_category_Comics + main_category_Crafts + main_category_Dance + main_category_Design + main_category_Fashion + main_category_Film_and_Video + main_category_Food + main_category_Games + main_category_Journalism + main_category_Music + main_category_Photography + main_category_Publishing + main_category_Technology + main_category_Theater'
+
+# Fit the logistic regression model
+stats_model_us = smf.logit(formula, data=train_df_stats).fit()
+
+# Make predictions on the test data
+test_df_stats['predicted'] = stats_model_us.predict(test_df_stats)
+test_df_stats['predicted_class'] = (test_df_stats['predicted'] > 0.5).astype(int)
+
+# Display the model summary
+print(stats_model_us.summary())
+
+# Extract the independent variables from the training data
+independent_vars_for_vif = train_df_stats[['backers', 'usd_pledged_real', 'main_category_Comics', 'main_category_Crafts', 
+                                   'main_category_Dance', 'main_category_Design', 'main_category_Fashion', 
+                                   'main_category_Film_and_Video', 'main_category_Food', 'main_category_Games', 
+                                   'main_category_Journalism', 'main_category_Music', 'main_category_Photography', 
+                                   'main_category_Publishing', 'main_category_Technology', 'main_category_Theater']]
+
+# Convert boolean variables to integers
+independent_vars_for_vif = independent_vars_for_vif.applymap(lambda x: int(x) if isinstance(x, bool) else x)
+
+# Ensure all data types are numeric
+independent_vars_for_vif = independent_vars_for_vif.apply(pd.to_numeric, errors='coerce')
+
+# Create a DataFrame to store VIF values
+vif_data = pd.DataFrame()
+vif_data['Feature'] = independent_vars_for_vif.columns
+vif_data['VIF'] = [variance_inflation_factor(independent_vars_for_vif.values, i) for i in range(len(independent_vars_for_vif.columns))]
+
+print(vif_data)
+
+# Evaluate the model's performance on the test data
+accuracy_stats_test = accuracy_score(test_df_stats['state_binary'], test_df_stats['predicted_class'])
+conf_matrix_stats_test = confusion_matrix(test_df_stats['state_binary'], test_df_stats['predicted_class'])
+class_report_stats_test = classification_report(test_df_stats['state_binary'], test_df_stats['predicted_class'])
+
+print(f'Test Accuracy: {accuracy_stats_test}')
+print('Test Confusion Matrix:')
+print(conf_matrix_stats_test)
+print('Test Classification Report:')
+print(class_report_stats_test)
+
+# Evaluate the model's performance on the training data
+train_df_stats['predicted'] = stats_model_us.predict(train_df_stats)
+train_df_stats['predicted_class'] = (train_df_stats['predicted'] > 0.5).astype(int)
+
+accuracy_stats_train = accuracy_score(train_df_stats['state_binary'], train_df_stats['predicted_class'])
+conf_matrix_stats_train = confusion_matrix(train_df_stats['state_binary'], train_df_stats['predicted_class'])
+class_report_stats_train = classification_report(train_df_stats['state_binary'], train_df_stats['predicted_class'])
+
+print(f'Training Accuracy: {accuracy_stats_train}')
+print('Training Confusion Matrix:')
+print(conf_matrix_stats_train)
+print('Training Classification Report:')
+print(class_report_stats_train)
+
+# %%
+# Average % met and shows the inconsistency in the data with the cancelled state
+data = kickstarter[kickstarter['state'].isin(['failed', 'canceled', 'successful'])]
+
+canceled_inconsistent = data[(data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real'])]
+num_removed_canceled = canceled_inconsistent.shape[0]
+
+total_canceled = data[data['state'] == 'canceled'].shape[0]
+num_kept_canceled = total_canceled - num_removed_canceled
+
+print(f"Number of logically inconsistent 'canceled' rows removed: {num_removed_canceled}")
+print(f"Number of 'canceled' rows kept: {num_kept_canceled}")
+
+data_clean = data[~((data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real']))]
+data_clean['percentage_met'] = (data_clean['usd_pledged_real'] / data_clean['usd_goal_real']) * 100
+
+data_filtered = data_clean[data_clean['state'].isin(['failed', 'successful'])]
+
+goal_met_percentage = data_filtered.groupby('state')['percentage_met'].mean().reset_index()
+
+plt.figure(figsize=(8, 6))
+plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met'], color=['red', 'green'])
+plt.title('Average Percentange Met of Campaign Goal')
+plt.ylabel('Average Percentage of Goal Met (%)')
+plt.xlabel('Project State')
+plt.ylim(0, max(goal_met_percentage['percentage_met']) + 20)
+for index, value in enumerate(goal_met_percentage['percentage_met']):
+    plt.text(index, value + 2, f"{value:.2f}%", ha='center')
+plt.show()
+
+plt.figure(figsize=(6, 6))
+plt.pie([num_removed_canceled, num_kept_canceled],
+        labels=['Removed Canceled Rows', 'Kept Canceled Rows'],
+        autopct='%1.1f%%', startangle=90, colors=['red', 'orange'])
+plt.title('Breakdown of Removed vs. Kept Canceled Rows')
+plt.show()
+
+# Zero backers
+zero_backers_count = kickstarter[kickstarter['backers'] == 0].shape[0]
+one_or_more_backers_count = kickstarter[kickstarter['backers'] >= 1].shape[0]
+
+labels = ['Zero Backers', '1+ Backers']
+sizes = [zero_backers_count, one_or_more_backers_count]
+colors = ['red', 'green']
+
+plt.figure(figsize=(6, 6))
+plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
+plt.title('Distribution of Projects: Zero Backers vs 1+ Backers')
+plt.show()
+
+
+# %%
+# Histogram of Backers
+backers = kickstarter['backers']
+
+Q1 = backers.quantile(0.25)
+Q3 = backers.quantile(0.75)
+IQR = Q3 - Q1
+filtered_backers = backers[(backers <= Q3 + 1.5 * IQR)]
+
+num_outliers_removed = len(backers) - len(filtered_backers)
+
+plt.hist(filtered_backers, bins=50, edgecolor='black')
+plt.title('Histogram of Backers (Outliers Removed)')
+plt.xlabel('Number of Backers')
+plt.ylabel('Frequency')
+plt.show()
+
+print(f"Number of outliers removed: {num_outliers_removed}")
