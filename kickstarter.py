@@ -1,4 +1,10 @@
+#%% [markdown]
+## Predicting Kickstarter Campaign Success
+# By: Leshauna Hartman, Fardin Hafiz, Tanya Visser, and Rachel Thomas
 
+#%% [markdown]
+
+## 1. Data Cleaning
 #%%
 import numpy as np
 import pandas as pd
