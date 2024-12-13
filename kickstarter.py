@@ -408,6 +408,12 @@ plt.show()
 
 # %%
 # Histogram of Backers
+# To continue the study of the number of backers, a histogram was created in order 
+# to study the overall numbers of backers. The outliers were removed from this 
+# graph because when they were included, the graph was not very useful since most 
+# of the data ended up in one column. We removed the outliers and the graph actually 
+# made sense. The libraries were used to make the histogram, and we also made a code 
+# to see the number of outliers removed.
 backers = kickstarter['backers']
 
 Q1 = backers.quantile(0.25)
