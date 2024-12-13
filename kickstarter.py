@@ -387,6 +387,12 @@ plt.title('Breakdown of Removed vs. Kept Canceled Rows')
 plt.show()
 
 # Zero backers
+# This code aims to find the number of projects with zero backers and compare it to 
+# the total number of projects that have at least one backer. This was done by 
+# coding to search the count for 'backers' = 0, which would return all of the project
+# that had no backers. This was then compared to the projects with at least 1 backer in
+# a pie chart.
+
 zero_backers_count = kickstarter[kickstarter['backers'] == 0].shape[0]
 one_or_more_backers_count = kickstarter[kickstarter['backers'] >= 1].shape[0]
 
