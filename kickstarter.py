@@ -315,11 +315,11 @@ sns.scatterplot(
     data=kickstarter_final,
     x='state',
     y='backers',
-    size='usd_goal_real',  # Map `use_goal_real` to marker size
-    hue='usd_goal_real',  # Map `use_goal_real` to color
-    palette='viridis',  # A perceptually uniform colormap
-    sizes=(50, 500),  # Adjust marker sizes
-    alpha=0.7  # Add some transparency to reduce overlap
+    size='usd_goal_real',  
+    hue='usd_goal_real',  
+    palette='viridis',  
+    sizes=(50, 500),  
+    alpha=0.7  
 )
 
 plt.title('State by Number of Backers and Funding Goal', fontsize=20)
@@ -331,6 +331,12 @@ plt.yticks(fontsize=12)
 plt.legend(title='Goal (USD)', fontsize=12, title_fontsize=14, loc='center')
 plt.tight_layout()
 plt.show()
+
+#%% [markdown]
+# The graph above shows failed campaigns have fewer backers than successful
+# campaigns, and also have significantly larger funding goals than successful
+# campaigns indicaged by the colored bubbles on the failed side of the plot. 
+# Successful campaigns have more backers and more modest funding goals.
 
 #%%
 
@@ -573,7 +579,9 @@ plt.show()
 
 n_terminal_nodes = sum(dtree_kickstarter8.tree_.children_left == -1)
 print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
- # max depth 4
+
+
+# max depth 4
 plt.figure(figsize=(12,8))
 plot_tree(dtree_kickstarter4, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter4.classes_, filled=True, rounded=True)
 plt.title('Decision Tree for Kickstarter Campaign Outcomes (max depth 4)')
@@ -582,6 +590,9 @@ plt.show()
 n_terminal_nodes = sum(dtree_kickstarter4.tree_.children_left == -1)
 print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
 
+#%% [markdown]
+# The tree with max depth 8 is extremely complex, with 34 terminal leaf nodes.
+# The tree with max depth 4 is significanlty less complex, with only 15 terminal leaf nodes.
 #%%
 
 # Generate a text summary of the tree
@@ -590,6 +601,31 @@ print(tree_rules8)
 
 tree_rules4 = export_text(dtree_kickstarter4, feature_names=X_trainkickstarter.columns.tolist())
 print(tree_rules4)
+
+#%% [markdown]
+
+# In order to interpret the tree, we generated a text summary which is 
+# significanlty more readable than the tree plot. This tree splits
+# first by backers, then by goal, then by pledged amount, and then category,
+# with a small influence of country. 
+# Path 1 has <= 12.5 backers, a goal <= $650, pledge amount <= $184.81, and not in Music are likely to fail.
+# Path 2 has <= 12.5 backers, a goal <= $650, pledge amount > #184.81, and not in Publishing are likely to succeed.
+# Path 3 has <= 12.5 backers, a goal > $650, having a specific country, and in Dance will likely fail.
+# Path 4 has >12.5 backers but <= 67.5, a goal <= $4747, and any value pledged is likely to be successful.
+# Path 5 has > 12.5 backers but <= 67.5, a goal is > $4747, and pledged <= $6322.9 are likely to fail, but > $6322.9 are likely to succeed.
+# Path 6 has > 67.5 backers, a goal <= $36970.10, and not Crafts are likely to succeed and if Crafts is likely to fail.
+# Path 7 has >67.5 backers, a goal > $36970, and pledged amount <= $38512.01 are like to fail, but if > $38512.01 are likely to be successful.
+# Overall, backers are the most significant predictor. Projects with fewer than 12.5 backers are most likely to 
+# fail regardless of other factors. Projects with backers between 12.5-67.5
+# backers increased the likelihood of success as long a goals re small to moderate.
+# Projects with > 67.5 backers have the highest likelihood of success, even with higher funding goals.
+# Small funding goals succeed more often, with projects with a goal less than 
+# $4747 (and especially less than $650), are highly likely to succeed assuming
+# they get some backers and some pledged amount. Low pledged amounts leads to 
+# failure, especially for high goals. Categories play an overall secondary
+# role, though funding for Craft projects is likely to fail in most scenarios.
+# There may be some small regional effects, but they are not substantial.
+
 #%%
 
 #predict response on the test data and produce confusion matrix
