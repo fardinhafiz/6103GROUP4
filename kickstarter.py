@@ -431,6 +431,14 @@ plt.show()
 
 print(f"Number of outliers removed: {num_outliers_removed}")
 
+# %%
+# Number of One Doner Successful Campaigns 
+successful_one_backer = kickstarter[(kickstarter['state'] == 'successful') & (kickstarter['backers'] == 1)]
+average_amount = successful_one_backer['usd_pledged_real'].mean()
+
+print(f"Number of One Doner Success Campaigns: {successful_one_backer.shape[0]}")
+print(f"Average amount pledged for successful projects with exactly 1 backer: ${average_amount:.2f}")
+
 
 #%% [markdown]
 
