@@ -68,6 +68,7 @@ kickstarter['main_category'].unique()
 # likely introduced multicollinearity with the main_categories, and it make
 # more sense to evaluate the funding goals and pledges converted to all 
 # US dollars since there were many currency types included in the dataset.
+
 # %%
 
 # subset for just failed or success, reduces set to 331675 rows with 15 variables
@@ -107,9 +108,11 @@ print(kickstarter_final)
 #%% [markdown]
 
 ## 2. Exploratory Data Analysis
+
 # The exploratory Data Analysis aimed to understand the shape of the dataset
 # and guide the modeling process. This included summary statistics and 
 # multiple graph types to understand the relationships between the variables.
+
 # %%
 # summary stats (for all countries)
 # Describe continuous variables
@@ -117,6 +120,9 @@ print(kickstarter_final[['backers', 'usd_goal_real', 'usd_pledged_real', 'Durati
 
 # Describe categorical variables
 print(kickstarter_final[['main_category', 'state', 'currency', 'country']].apply(lambda x: x.describe(include='all')).T)
+
+#%% [markdown]
+# A quick look at the summary statistics shows that number of backers, goal amount, and pledged amount have large ranges with most of the values on the lower range and some extreme values on the higher end. We can also see that Film and Video projects are more prevalent on Kickstarter, the majority of campaigns fail, and the US produces the most campaigns. 
 
 #%%
 # distribution of failed vs success - more likely to fail than succeed.
@@ -185,6 +191,7 @@ plt.show()
 # versus success rate for those categories. some have appreciably better rates
 # of success like dance and theater, while other have appreciably worse rates
 # of success like journalism and technology. 
+
 #%% 
 # top 5 categories (based on percentage of successful projects in the category)
 
@@ -244,6 +251,10 @@ cbar.set_label('Median Goal (USD)')
 
 plt.tight_layout()
 plt.show()
+
+#%% [markdown]
+
+# The percentage of successful projects for all of the categories is shown in the above graph. The bars for each category are colored by the median funding goal amount for that category. Generally, the more successful categories had lower funding goals and categories with higher goals were less successful, with technology having the highest median goal and lowest success rate.
 
 #%% 
 # top 5 categories percentage (US only)
@@ -305,6 +316,10 @@ cbar.set_label('Median Goal (USD)')
 
 plt.tight_layout()
 plt.show()
+
+#%% [markdown]
+
+# The percentage of successful projects for all of the categories in the US is shown in the above graph. The bars for each category are colored by the median funding goal amount for that category. Generally, the more successful categories had lower funding goals and categories with higher goals were less successful, with technology having the highest median goal and being on the lower end of success rates. 
 
 #%%
 #success and failure by backers and funding goal
@@ -971,6 +986,9 @@ x_selected_us_features_with_vif = x_us_select[selected_features_us]
 vif_df = calculate_vif(x_selected_us_features_with_vif)
 print(vif_df)
 
+#%% [markdown]
+# Looking at the above code, we tried forward step-wise feature selection for dataset subset for US country only which chose backers, pledged amount, goal amount, duration, and comics category as the more important variables. The accuracy of the model fit with those variables was high at 0.998 which is almost perfectly predictive. We felt that this may be due to overfitting of the data. So we tried looking at different variations and found that the overfitting occurred when using backers and goal amount. 
+
 # %%
 #try us only 
 train_df_stats, test_df_stats = train_test_split(kickstarter_us_binary, test_size=0.2, random_state=42)
@@ -1033,3 +1051,7 @@ print(conf_matrix_stats_train)
 print('Training Classification Report:')
 print(class_report_stats_train)
 
+#%% [markdown]
+# We settled on looking at the US only subsetted data using the same variables as the regression model used for all countries. The accuracy of the model did not improve much when subsetting out all of the other countries. The VIF shows that there is not too much multicollinearity affecting the coefficients. 
+
+# Training and the testing accuracy show that the model is not likely to be overfit and does a decent job at predicting campaign success or failure for US Kickstarter campaigns. 
