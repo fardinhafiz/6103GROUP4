@@ -432,7 +432,12 @@ plt.show()
 print(f"Number of outliers removed: {num_outliers_removed}")
 
 # %%
-# Number of One Doner Successful Campaigns 
+# Number of One Donor Successful Campaigns 
+# This code aims to determine the total number of successful campaigns with only one donor.
+# This was done by setting certain factors in the backers' data set like setting the state
+# to successful and the backers to one. We then found the number of data that fit these 
+# specifc factors and also took the mean pledged of these backers.
+
 successful_one_backer = kickstarter[(kickstarter['state'] == 'successful') & (kickstarter['backers'] == 1)]
 average_amount = successful_one_backer['usd_pledged_real'].mean()
 
