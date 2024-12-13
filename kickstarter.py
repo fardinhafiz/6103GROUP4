@@ -346,7 +346,12 @@ plt.tight_layout()
 plt.show()
 
 # %%
-# Average % met and shows the inconsistency in the data with the cancelled state
+# Average % met and shows the inconsistency in the data with the canceled state
+# This code aims to find the % of the goal that is being met and also looks to study more of the canceled state of the data.
+# This is done by calculating the average of the money raised / total goal. This code does this for the failed and successful 
+# data. This code also looks at the number of rows removed that are labeled as "canceled" but are successful since
+# they met their goal. 
+
 data = kickstarter[kickstarter['state'].isin(['failed', 'canceled', 'successful'])]
 
 canceled_inconsistent = data[(data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real'])]
