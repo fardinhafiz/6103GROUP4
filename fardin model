@@ -1,16 +1,37 @@
 import pandas as pd
 import statsmodels.api as sm
 from statsmodels.formula.api import logit
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 projects = pd.read_csv("/Users/fardinhafiz/Desktop/ks-projects-201801.csv")
 
 projects = projects[projects['state'].isin(['successful', 'failed'])]
 
-projects = projects.dropna(subset=['main_category', 'pledged', 'backers', 'state'])
+projects = projects.dropna(subset=['category', 'usd_pledged_real', 'backers', 'state','country'])
 
 projects['state_binary'] = projects['state'].apply(lambda x: 1 if x == 'successful' else 0)
+train, test = train_test_split(projects, test_size=0.2, random_state=42)
 
-model = logit(formula='state_binary ~ C(main_category) + pledged + backers', data=projects)
+model = logit(formula='state_binary ~ C(category) + usd_pledged_real + backers + C(country)', data=projects)
 model_fit = model.fit()
 
 print(model_fit.summary())
+
+test['predicted_prob'] = model_fit.predict(test)
+
+fpr, tpr, thresholds = roc_curve(test['state_binary'], test['predicted_prob'])
+
+roc_auc = auc(fpr, tpr)
+
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, color='blue', lw=2, label='AUC = %0.2f' % roc_auc)
+plt.plot([0, 1], [0, 1], color='gray', linestyle='--', lw=2)  # Diagonal line
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate (FPR)')
+plt.ylabel('True Positive Rate (TPR)')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc="lower right")
+plt.show()

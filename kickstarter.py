@@ -1,4 +1,10 @@
+#%% [markdown]
+## Predicting Kickstarter Campaign Success
+# By: Leshauna Hartman, Fardin Hafiz, Tanya Visser, and Rachel Thomas (Group 4)
 
+#%% [markdown]
+
+## 1. Data Cleaning
 #%%
 import numpy as np
 import pandas as pd
@@ -8,19 +14,29 @@ import statsmodels.formula.api as smf
 from sklearn.model_selection import train_test_split
 import matplotlib.colors as mcolors
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
 from sklearn.tree import plot_tree
 from sklearn.tree import export_text
-from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.linear_model import LogisticRegression
 from statsmodels.formula.api import glm
-from sklearn.metrics import classification_report
 from sklearn.metrics import roc_auc_score, roc_curve
 import time
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.tree import export_text
+from sklearn.model_selection import cross_val_score
+from scipy.stats import ttest_rel
+from sklearn.model_selection import validation_curve
+from sklearn import metrics
+import pandas as pd
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
+
+#%% [markdown]
+
+# We started by reading in the dataset and calling it "kickstarter". 
+# Then we ran some code just to evaluate what the dataset looked like
+# from a wholistic standpoint - what kind of values were in the dataset
+# and the data types and distriution of null values.
 
 #%%
 # read in the dataset 
@@ -38,6 +54,20 @@ kickstarter.info()
 # check unique values for 'state' and 'main_category'
 kickstarter['state'].unique()
 kickstarter['main_category'].unique()
+
+#%% [markdown]
+# The dataset showed 6 final possible states for a campaign. Since we
+# were only interested in whether a campaign succeeded or failed, we 
+# created a subset that only contained rows reflecting these outcomes
+# (called "kickstarter1"). We then calculated the duration of the campaign
+# by finding the difference between the date launched and the deadline 
+# date. We changed the relevant variable from the default object
+# data type to categorical. Finally we created a subset called "kickstarter_final"
+# containing only the variables we were going to consider (main_category, currency, state, backers, country,
+# usd_pledged_real, usd_goal_real, Duration). The subcategories would have
+# likely introduced multicollinearity with the main_categories, and it make
+# more sense to evaluate the funding goals and pledges converted to all 
+# US dollars since there were many currency types included in the dataset.
 
 # %%
 
@@ -75,6 +105,14 @@ kickstarter1.info()
 kickstarter_final = kickstarter1[['main_category', 'currency', 'state', 'backers', 'country', 'usd_pledged_real', 'usd_goal_real', 'Duration']]
 print(kickstarter_final)
 
+#%% [markdown]
+
+## 2. Exploratory Data Analysis
+
+# The exploratory Data Analysis aimed to understand the shape of the dataset
+# and guide the modeling process. This included summary statistics and 
+# multiple graph types to understand the relationships between the variables.
+
 # %%
 # summary stats (for all countries)
 # Describe continuous variables
@@ -83,22 +121,11 @@ print(kickstarter_final[['backers', 'usd_goal_real', 'usd_pledged_real', 'Durati
 # Describe categorical variables
 print(kickstarter_final[['main_category', 'state', 'currency', 'country']].apply(lambda x: x.describe(include='all')).T)
 
-#%% 
-# correlation plot for dataframe for all countries 
-# One-hot encode the categorical variables
-kickstarter_final_encoded = pd.get_dummies(kickstarter_final, drop_first=True)
-
-# Calculate the correlation matrix
-kickstarter_final_encoded_corr_matrix = kickstarter_final_encoded.corr()
-
-# Generate a heat map
-plt.figure(figsize=(10, 8))
-sns.heatmap(kickstarter_final_encoded_corr_matrix, annot=False, cmap='coolwarm', linewidths=.5)
-plt.title('Correlation Matrix Heat Map')
-plt.show()
+#%% [markdown]
+# A quick look at the summary statistics shows that number of backers, goal amount, and pledged amount have large ranges with most of the values on the lower range and some extreme values on the higher end. We can also see that Film and Video projects are more prevalent on Kickstarter, the majority of campaigns fail, and the US produces the most campaigns. 
 
 #%%
-# distribution of failed vs success
+# distribution of failed vs success - more likely to fail than succeed.
 
 distribution = kickstarter_final['state'].value_counts()
 print(distribution)
@@ -122,45 +149,6 @@ plt.pie(
 plt.title('Distribution of Kickstarter Project Outcomes')
 plt.show()
 
-#%% 
-# Filter the dataframe for successful and failed projects
-successful_projects = kickstarter_final[kickstarter_final['state'] == "successful"]
-failed_projects = kickstarter_final[kickstarter_final['state'] == "failed"]
-
-# Create the scatter plot for successful projects
-plt.figure(figsize=(12, 8))
-sns.scatterplot(data=successful_projects, 
-                x='usd_goal_real', 
-                y='backers', 
-                hue='main_category', 
-                palette='Set2')
-plt.title('Successful Kickstarter Projects: Goal Amount vs. Number of Backers by Main Category')
-plt.xlabel('Goal Amount in USD')
-plt.ylabel('Number of Backers')
-plt.legend(title='Main Category', bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.grid(True)
-plt.tight_layout()
-
-# Show the first plot
-plt.show()
-
-# Create the scatter plot for failed projects
-plt.figure(figsize=(12, 8))
-sns.scatterplot(data=failed_projects, 
-                x='usd_goal_real', 
-                y='backers', 
-                hue='main_category', 
-                palette='Set2')
-plt.title('Failed Kickstarter Projects: Goal Amount vs. Number of Backers by Main Category')
-plt.xlabel('Goal Amount in USD')
-plt.ylabel('Number of Backers')
-plt.legend(title='Main Category', bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.grid(True)
-plt.tight_layout()
-
-# Show the second plot
-plt.show()
-
 # %%
 
 # state by country, currency, and category
@@ -169,7 +157,7 @@ grouped_country = kickstarter_final.groupby(['country', 'state']).size().unstack
 grouped_country.plot(kind='bar', stacked=True, figsize=(10, 6), color=['red', 'green'])
 plt.title('Projects by Country, and Outcome (Stacked)')
 plt.ylabel('Count')
-plt.xlabel('Category')
+plt.xlabel('Country')
 plt.legend(title='Outcome')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
@@ -180,7 +168,7 @@ grouped_currency = kickstarter_final.groupby(['currency', 'state']).size().unsta
 grouped_currency.plot(kind='bar', stacked=True, figsize=(10, 6), color=['red', 'green'])
 plt.title('Projects by Currency, and Outcome (Stacked)')
 plt.ylabel('Count')
-plt.xlabel('Category')
+plt.xlabel('Currency')
 plt.legend(title='Outcome')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
@@ -196,6 +184,13 @@ plt.legend(title='Outcome')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
+#%% [markdown]
+# In the first 2 graphs above, you can see the total number of projects in the 
+# US far exceed that of any other country. In the third, you can the overall
+# distribution of projects in the various categories, as well as failure
+# versus success rate for those categories. some have appreciably better rates
+# of success like dance and theater, while other have appreciably worse rates
+# of success like journalism and technology. 
 
 #%% 
 # top 5 categories (based on percentage of successful projects in the category)
@@ -257,6 +252,10 @@ cbar.set_label('Median Goal (USD)')
 plt.tight_layout()
 plt.show()
 
+#%% [markdown]
+
+# The percentage of successful projects for all of the categories is shown in the above graph. The bars for each category are colored by the median funding goal amount for that category. Generally, the more successful categories had lower funding goals and categories with higher goals were less successful, with technology having the highest median goal and lowest success rate.
+
 #%% 
 # top 5 categories percentage (US only)
 
@@ -275,8 +274,6 @@ print("Top 5 categories with the Highest Percentage of Successful Projects (all 
 print(top_categories_percentage_us)
 
 # using median goal instead of mean goal
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 
 # Calculate the total number of projects per category
 total_projects_us = us_kickstarter_final.groupby('main_category').size()
@@ -320,6 +317,10 @@ cbar.set_label('Median Goal (USD)')
 plt.tight_layout()
 plt.show()
 
+#%% [markdown]
+
+# The percentage of successful projects for all of the categories in the US is shown in the above graph. The bars for each category are colored by the median funding goal amount for that category. Generally, the more successful categories had lower funding goals and categories with higher goals were less successful, with technology having the highest median goal and being on the lower end of success rates. 
+
 #%%
 #success and failure by backers and funding goal
 
@@ -329,11 +330,11 @@ sns.scatterplot(
     data=kickstarter_final,
     x='state',
     y='backers',
-    size='usd_goal_real',  # Map `use_goal_real` to marker size
-    hue='usd_goal_real',  # Map `use_goal_real` to color
-    palette='viridis',  # A perceptually uniform colormap
-    sizes=(50, 500),  # Adjust marker sizes
-    alpha=0.7  # Add some transparency to reduce overlap
+    size='usd_goal_real',  
+    hue='usd_goal_real',  
+    palette='viridis',  
+    sizes=(50, 500),  
+    alpha=0.7  
 )
 
 plt.title('State by Number of Backers and Funding Goal', fontsize=20)
@@ -345,6 +346,12 @@ plt.yticks(fontsize=12)
 plt.legend(title='Goal (USD)', fontsize=12, title_fontsize=14, loc='center')
 plt.tight_layout()
 plt.show()
+
+#%% [markdown]
+# The graph above shows failed campaigns have fewer backers than successful
+# campaigns, and also have significantly larger funding goals than successful
+# campaigns indicaged by the colored bubbles on the failed side of the plot. 
+# Successful campaigns have more backers and more modest funding goals.
 
 #%%
 
@@ -359,45 +366,131 @@ plt.xticks(rotation=45)
 plt.tight_layout()
 plt.show()
 
-#%% 
+# %%
+# Average % met and shows the inconsistency in the data with the canceled state
+# This code aims to find the % of the goal that is being met and also looks to study more of the canceled state of the data.
+# This is done by calculating the average of the money raised / total goal. This code does this for the failed and successful 
+# data. This code also looks at the number of rows removed that are labeled as "canceled" but are successful since
+# they met their goal. 
+
+data = kickstarter[kickstarter['state'].isin(['failed', 'canceled', 'successful'])]
+
+canceled_inconsistent = data[(data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real'])]
+num_removed_canceled = canceled_inconsistent.shape[0]
+
+total_canceled = data[data['state'] == 'canceled'].shape[0]
+num_kept_canceled = total_canceled - num_removed_canceled
+
+print(f"Number of logically inconsistent 'canceled' rows removed: {num_removed_canceled}")
+
+data_clean = data[~((data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real']))]
+data_clean['percentage_met'] = (data_clean['usd_pledged_real'] / data_clean['usd_goal_real']) * 100
+
+data_filtered = data_clean[data_clean['state'].isin(['failed', 'successful'])]
+
+goal_met_percentage = data_filtered.groupby('state')['percentage_met'].mean().reset_index()
+
+plt.figure(figsize=(8, 6))
+plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met'], color=['red', 'green'])
+plt.title('Average Percentange Met of Campaign Goal')
+plt.ylabel('Average Percentage of Goal Met (%)')
+plt.xlabel('Project State')
+plt.ylim(0, max(goal_met_percentage['percentage_met']) + 20)
+for index, value in enumerate(goal_met_percentage['percentage_met']):
+    plt.text(index, value + 2, f"{value:.2f}%", ha='center')
+plt.show()
+
+plt.figure(figsize=(6, 6))
+plt.pie([num_removed_canceled, num_kept_canceled],
+        labels=['Removed Canceled Rows', 'Kept Canceled Rows'],
+        autopct='%1.1f%%', startangle=90, colors=['red', 'orange'])
+plt.title('Breakdown of Removed vs. Kept Canceled Rows')
+plt.show()
+
+# Zero backers
+# This code aims to find the number of projects with zero backers and compare it to 
+# the total number of projects that have at least one backer. This was done by 
+# coding to search the count for 'backers' = 0, which would return all of the project
+# that had no backers. This was then compared to the projects with at least 1 backer in
+# a pie chart.
+
+zero_backers_count = kickstarter[kickstarter['backers'] == 0].shape[0]
+one_or_more_backers_count = kickstarter[kickstarter['backers'] >= 1].shape[0]
+
+labels = ['Zero Backers', '1+ Backers']
+sizes = [zero_backers_count, one_or_more_backers_count]
+colors = ['red', 'green']
+
+plt.figure(figsize=(6, 6))
+plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
+plt.title('Distribution of Projects: Zero Backers vs 1+ Backers')
+plt.show()
 
 
-# Separate the data based on state
-successful_goals = kickstarter_final[kickstarter_final['state'] == 'successful']['usd_goal_real']
-failed_goals = kickstarter_final[kickstarter_final['state'] == 'failed']['usd_goal_real']
+# %%
+# Histogram of Backers
+# To continue the study of the number of backers, a histogram was created in order 
+# to study the overall numbers of backers. The outliers were removed from this 
+# graph because when they were included, the graph was not very useful since most 
+# of the data ended up in one column. We removed the outliers and the graph actually 
+# made sense. The libraries were used to make the histogram, and we also made a code 
+# to see the number of outliers removed.
+backers = kickstarter['backers']
 
-# Plot histogram for successful goals
-plt.figure(figsize=(12, 6))
-plt.hist(successful_goals, bins = 5000, alpha=0.7, color='blue')
-plt.xlabel('Goal Amount (USD)')
+Q1 = backers.quantile(0.25)
+Q3 = backers.quantile(0.75)
+IQR = Q3 - Q1
+filtered_backers = backers[(backers <= Q3 + 1.5 * IQR)]
+
+num_outliers_removed = len(backers) - len(filtered_backers)
+
+plt.hist(filtered_backers, bins=50, edgecolor='black')
+plt.title('Histogram of Backers (Outliers Removed)')
+plt.xlabel('Number of Backers')
 plt.ylabel('Frequency')
-plt.title('Histogram of Goal Amounts for Successful Projects')
-plt.xlim(0, 20000)
 plt.show()
 
-# Plot histogram for failed goals
-plt.figure(figsize=(12, 6))
-plt.hist(failed_goals, alpha=0.7, color='red')
-plt.xlabel('Goal Amount (USD)')
-plt.ylabel('Frequency')
-plt.title('Histogram of Goal Amounts for Failed Projects')
-plt.show()
+print(f"Number of outliers removed: {num_outliers_removed}")
 
-#%%
+# %%
+# Number of One Donor Successful Campaigns 
+# This code aims to determine the total number of successful campaigns with only one donor.
+# This was done by setting certain factors in the backers' data set like setting the state
+# to successful and the backers to one. We then found the number of data that fit these 
+# specifc factors and also took the mean pledged of these backers.
 
-plt.figure(figsize=(10, 6))
-sns.scatterplot(data=kickstarter_final, x='usd_goal_real', y='backers', hue='state', palette='viridis', alpha=0.7)
+successful_one_backer = kickstarter[(kickstarter['state'] == 'successful') & (kickstarter['backers'] == 1)]
+average_amount = successful_one_backer['usd_pledged_real'].mean()
 
-# Customizing the plot
-plt.title('Scatterplot of Backers vs Goal Colored by State')
-plt.xlabel('Goal (use_goal_real)')
-plt.ylabel('Backers')
-plt.legend(title='State', loc='upper right')
-plt.grid(True)
+print(f"Number of One Doner Success Campaigns: {successful_one_backer.shape[0]}")
+print(f"Average amount pledged for successful projects with exactly 1 backer: ${average_amount:.2f}")
 
-# Show the plot
-plt.show()
 
+#%% [markdown]
+
+## 3. Classification Decision Tree Training, Fit, Analysis, and Evaluation
+# To create the decision tree, we created a training set and then fit a 
+# tree to max depth 8. This produced a complex tree with 34 leaf nodes, but
+# training error rate of 0. The test error rate for this tree was 5.2% which
+# is good, however the size of the tree makes it very complex to understand
+# and we strongly suspct this tree is overfitting the data. 
+# We then tried trees at depths 3. 4. and 5 (only 4 is depicted in this code).
+# The tree at depth 3 was reasonably easy to undersand and did still have
+# a training error rate of only 6.9%, and a test error rate of 10.6%. At
+# max depth 4, the training error rate was 6.87% and the test error rate
+# was 8.4%. At max depth 5, the training error was only 1.6% and the test
+# error 6.4%. In order to compare the models at the different depths, we 
+# completed cross validation at each and compared the scores using T-tests.
+# The model with max depth 4 performed statistically better than the model
+# with max depth 3, but the model with max depth 5 was not statistically
+# better than the model with max depth 4. We also performed a validation
+# curve for the tree which showed the ideal depth is probably around 5-6
+# based on the point at which both the training score and the validation 
+# score are at their highest, however these models at these depths are 
+# very complex and much more difficult to understand. So we elected to 
+# use the model with max depth 4 as we felt the slight increase error 
+# rate was acceptable in exchange for a much simpler model with only 15 
+# terminal leaf nodes.
 # %%
 # create a training set
 
@@ -405,17 +498,34 @@ train_set, test_set = train_test_split(kickstarter_final, train_size=800, random
 
 #%%
 #fit tree to training data
-
+# max depth 8
 X_trainkickstarter = train_set.drop(columns=['state'])
 y_trainkickstarter = train_set['state']
 
 X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
 
-dtree_kickstarter = DecisionTreeClassifier(max_depth = 4, criterion = 'gini', random_state = 1)
+dtree_kickstarter8 = DecisionTreeClassifier(max_depth = 8, criterion = 'gini', random_state = 1)
 
-dtree_kickstarter.fit(X_trainkickstarter, y_trainkickstarter)
+dtree_kickstarter8.fit(X_trainkickstarter, y_trainkickstarter)
 
-y_trainkickstarter_pred = dtree_kickstarter.predict(X_trainkickstarter)
+y_trainkickstarter_pred = dtree_kickstarter8.predict(X_trainkickstarter)
+
+
+training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_trainkickstarter_pred)
+
+print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
+
+# max depth 4
+X_trainkickstarter = train_set.drop(columns=['state'])
+y_trainkickstarter = train_set['state']
+
+X_trainkickstarter = pd.get_dummies(X_trainkickstarter, drop_first=True)
+
+dtree_kickstarter4 = DecisionTreeClassifier(max_depth = 4, criterion = 'gini', random_state = 1)
+
+dtree_kickstarter4.fit(X_trainkickstarter, y_trainkickstarter)
+
+y_trainkickstarter_pred = dtree_kickstarter4.predict(X_trainkickstarter)
 
 
 training_error_rate_kickstarter = 1 - accuracy_score(y_trainkickstarter, y_trainkickstarter_pred)
@@ -424,12 +534,7 @@ print(f"Training error rate: {training_error_rate_kickstarter:.4f}")
 
 #%%
 # Comparison of cross validations to find best depth
-from sklearn.model_selection import cross_val_score
-from sklearn.tree import DecisionTreeClassifier
-from scipy.stats import ttest_rel
-import pandas as pd
 
-# Assuming you have already loaded your data and done the necessary preprocessing
 X_trainkickstarter = train_set.drop(columns=['state'])
 y_trainkickstarter = train_set['state']
 
@@ -452,7 +557,7 @@ print(f"Scores for max_depth=3: {scores_depth3}")
 print(f"Scores for max_depth=4: {scores_depth4}")
 print(f"T-statistic: {t_stat:.4f}, P-value: {p_value:.4f}")
 
-# Check if the difference is significant (typically, p < 0.05)
+# Check if the difference is significant
 if p_value < 0.05:
     print("The difference in performance is statistically significant.")
 else:
@@ -465,16 +570,15 @@ print(f"Scores for max_depth=4: {scores_depth4}")
 print(f"Scores for max_depth=5: {scores_depth5}")
 print(f"T-statistic: {t_stat:.4f}, P-value: {p_value:.4f}")
 
-# Check if the difference is significant (typically, p < 0.05)
+# Check if the difference is significant 
 if p_value < 0.05:
     print("The difference in performance is statistically significant.")
 else:
     print("The difference in performance is not statistically significant.")
 
 #%%
-from sklearn.model_selection import validation_curve
-import matplotlib.pyplot as plt
-import numpy as np
+
+# Validation curve for decision tree - probably best around 6, but more complex than necessary
 
 # Define parameter range
 param_range = np.arange(1, 15)
@@ -512,27 +616,65 @@ plt.show()
 #%%
 
 #plot the tree
-
+# max depth 8
 plt.figure(figsize=(12,8))
-plot_tree(dtree_kickstarter, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter.classes_, filled=True, rounded=True)
-plt.title('Decision Tree for Kickstarter Campaign Outcomes')
+plot_tree(dtree_kickstarter8, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter8.classes_, filled=True, rounded=True)
+plt.title('Decision Tree for Kickstarter Campaign Outcomes (max depth 8)')
 plt.show()
 
-n_terminal_nodes = sum(dtree_kickstarter.tree_.children_left == -1)
+n_terminal_nodes = sum(dtree_kickstarter8.tree_.children_left == -1)
 print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
 
+
+# max depth 4
+plt.figure(figsize=(12,8))
+plot_tree(dtree_kickstarter4, feature_names=X_trainkickstarter.columns, class_names=dtree_kickstarter4.classes_, filled=True, rounded=True)
+plt.title('Decision Tree for Kickstarter Campaign Outcomes (max depth 4)')
+plt.show()
+
+n_terminal_nodes = sum(dtree_kickstarter4.tree_.children_left == -1)
+print(f"Number of terminal nodes (leaf nodes): {n_terminal_nodes}")
+
+#%% [markdown]
+# The tree with max depth 8 is extremely complex, with 34 terminal leaf nodes.
+# The tree with max depth 4 is significanlty less complex, with only 15 terminal leaf nodes.
 #%%
 
 # Generate a text summary of the tree
-tree_rules = export_text(dtree_kickstarter, feature_names=X_trainkickstarter.columns.tolist())
-print(tree_rules)
+tree_rules8 = export_text(dtree_kickstarter8, feature_names=X_trainkickstarter.columns.tolist())
+print(tree_rules8)
+
+tree_rules4 = export_text(dtree_kickstarter4, feature_names=X_trainkickstarter.columns.tolist())
+print(tree_rules4)
+
+#%% [markdown]
+
+# In order to interpret the tree, we generated a text summary which is 
+# significanlty more readable than the tree plot. This tree splits
+# first by backers, then by goal, then by pledged amount, and then category,
+# with a small influence of country. 
+# Path 1 has <= 12.5 backers, a goal <= $650, pledge amount <= $184.81, and not in Music are likely to fail.
+# Path 2 has <= 12.5 backers, a goal <= $650, pledge amount > #184.81, and not in Publishing are likely to succeed.
+# Path 3 has <= 12.5 backers, a goal > $650, having a specific country, and in Dance will likely fail.
+# Path 4 has >12.5 backers but <= 67.5, a goal <= $4747, and any value pledged is likely to be successful.
+# Path 5 has > 12.5 backers but <= 67.5, a goal is > $4747, and pledged <= $6322.9 are likely to fail, but > $6322.9 are likely to succeed.
+# Path 6 has > 67.5 backers, a goal <= $36970.10, and not Crafts are likely to succeed and if Crafts is likely to fail.
+# Path 7 has >67.5 backers, a goal > $36970, and pledged amount <= $38512.01 are like to fail, but if > $38512.01 are likely to be successful.
+# Overall, backers are the most significant predictor. Projects with fewer than 12.5 backers are most likely to 
+# fail regardless of other factors. Projects with backers between 12.5-67.5
+# backers increased the likelihood of success as long a goals re small to moderate.
+# Projects with > 67.5 backers have the highest likelihood of success, even with higher funding goals.
+# Small funding goals succeed more often, with projects with a goal less than 
+# $4747 (and especially less than $650), are highly likely to succeed assuming
+# they get some backers and some pledged amount. Low pledged amounts leads to 
+# failure, especially for high goals. Categories play an overall secondary
+# role, though funding for Craft projects is likely to fail in most scenarios.
+# There may be some small regional effects, but they are not substantial.
 
 #%%
 
 #predict response on the test data and produce confusion matrix
-
-
-
+# max depth 8
 X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
 
 # Align test set columns with training set columns
@@ -541,28 +683,53 @@ X_testkickstarter = X_testkickstarter.reindex(columns=X_trainkickstarter.columns
 y_testkickstarter = test_set['state']
 
 
-y_testkickstarter_pred = dtree_kickstarter.predict(X_testkickstarter)
+y_testkickstarter_pred = dtree_kickstarter8.predict(X_testkickstarter)
 
 conf_matrix = confusion_matrix(y_testkickstarter, y_testkickstarter_pred)
 
-sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter.classes_, yticklabels=dtree_kickstarter.classes_)
+sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter8.classes_, yticklabels=dtree_kickstarter.classes_)
 plt.xlabel('Predicted')
 plt.ylabel('Actual')
-plt.title('Confusion Matrix for Test Set')
+plt.title('Confusion Matrix for Test Set (max depth 8)')
 plt.show()
 
 test_error_rate = 1 - accuracy_score(y_testkickstarter, y_testkickstarter_pred)
 print(f"Test error rate: {test_error_rate:.4f}")
 
-# %%
+# max depth 4
+X_testkickstarter = pd.get_dummies(test_set.drop(columns=['state']), drop_first=True)
 
-maxlevels = [None, 2, 3, 5, 8]
+# Align test set columns with training set columns
+X_testkickstarter = X_testkickstarter.reindex(columns=X_trainkickstarter.columns, fill_value=0)
+
+y_testkickstarter = test_set['state']
+
+
+y_testkickstarter_pred = dtree_kickstarter4.predict(X_testkickstarter)
+
+conf_matrix = confusion_matrix(y_testkickstarter, y_testkickstarter_pred)
+
+sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=dtree_kickstarter4.classes_, yticklabels=dtree_kickstarter.classes_)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix for Test Set (max depth 4)')
+plt.show()
+
+test_error_rate = 1 - accuracy_score(y_testkickstarter, y_testkickstarter_pred)
+print(f"Test error rate: {test_error_rate:.4f}")
+# %%
+# checking for best depth - although better fits a higher depth, tree becomes very complex and potentially overfit
+maxlevels = [None, 2, 3, 4, 5, 6, 7, 8]
 crits = ['gini', 'entropy']
 for l in maxlevels:
     for c in crits:
         dt = DecisionTreeClassifier(max_depth = l, criterion = c)
         dt.fit(X_trainkickstarter, y_trainkickstarter)
         print(l, c, dt.score(X_testkickstarter, y_testkickstarter))
+
+#%% [markdown]
+
+## 4. Logistic Regression Model Training, Fit, Analysis, and Evaluation
 
 # %%
 
@@ -626,7 +793,6 @@ plt.ylabel("True", fontsize = 12)
 plt.show()
 
 #%%
-from sklearn import metrics
 
 y_prob = model.predict_proba(X_test)[:, 1]  # Probability of positive class
 roc_auc = roc_auc_score(y_test, y_prob)  # AUC score
@@ -709,6 +875,10 @@ plt.ylabel('True Positive Rate')
 plt.title('ROC Curve')
 plt.show()
 
+#%% [markdown]
+
+## 5. Logistic Regression Model and Forward Step-wise Feature Selection with the same variables but data subset to US only. 
+
 # %%
 # prep US only stuff 
 
@@ -724,11 +894,6 @@ kickstarter_final_US['main_category'] = kickstarter_final_US['main_category'].re
 kickstarter_final_US = kickstarter_final_US.drop(['currency', 'country'], axis = 1)
 
 #%%
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-import statsmodels.formula.api as smf
-from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 #binary state
 kickstarter_us_binary = kickstarter_final_US.copy()
@@ -795,9 +960,7 @@ print(f'Accuracy: {accuracy_us_select}')
 evaluation_time = time.time() - start_time
 print_timing("Model evaluation time", start_time)
 
-import numpy as np
-import pandas as pd
-from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 
 # Convert boolean columns to integers
 def convert_boolean_to_int(data):
@@ -822,6 +985,9 @@ def calculate_vif(data):
 x_selected_us_features_with_vif = x_us_select[selected_features_us]
 vif_df = calculate_vif(x_selected_us_features_with_vif)
 print(vif_df)
+
+#%% [markdown]
+# Looking at the above code, we tried forward step-wise feature selection for dataset subset for US country only which chose backers, pledged amount, goal amount, duration, and comics category as the more important variables. The accuracy of the model fit with those variables was high at 0.998 which is almost perfectly predictive. We felt that this may be due to overfitting of the data. So we tried looking at different variations and found that the overfitting occurred when using backers and goal amount. 
 
 # %%
 #try us only 
@@ -885,72 +1051,7 @@ print(conf_matrix_stats_train)
 print('Training Classification Report:')
 print(class_report_stats_train)
 
-# %%
-# Average % met and shows the inconsistency in the data with the cancelled state
-data = kickstarter[kickstarter['state'].isin(['failed', 'canceled', 'successful'])]
+#%% [markdown]
+# We settled on looking at the US only subsetted data using the same variables as the regression model used for all countries. The accuracy of the model did not improve much when subsetting out all of the other countries. The VIF shows that there is not too much multicollinearity affecting the coefficients. 
 
-canceled_inconsistent = data[(data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real'])]
-num_removed_canceled = canceled_inconsistent.shape[0]
-
-total_canceled = data[data['state'] == 'canceled'].shape[0]
-num_kept_canceled = total_canceled - num_removed_canceled
-
-print(f"Number of logically inconsistent 'canceled' rows removed: {num_removed_canceled}")
-print(f"Number of 'canceled' rows kept: {num_kept_canceled}")
-
-data_clean = data[~((data['state'] == 'canceled') & (data['usd_pledged_real'] > data['usd_goal_real']))]
-data_clean['percentage_met'] = (data_clean['usd_pledged_real'] / data_clean['usd_goal_real']) * 100
-
-data_filtered = data_clean[data_clean['state'].isin(['failed', 'successful'])]
-
-goal_met_percentage = data_filtered.groupby('state')['percentage_met'].mean().reset_index()
-
-plt.figure(figsize=(8, 6))
-plt.bar(goal_met_percentage['state'], goal_met_percentage['percentage_met'], color=['red', 'green'])
-plt.title('Average Percentange Met of Campaign Goal')
-plt.ylabel('Average Percentage of Goal Met (%)')
-plt.xlabel('Project State')
-plt.ylim(0, max(goal_met_percentage['percentage_met']) + 20)
-for index, value in enumerate(goal_met_percentage['percentage_met']):
-    plt.text(index, value + 2, f"{value:.2f}%", ha='center')
-plt.show()
-
-plt.figure(figsize=(6, 6))
-plt.pie([num_removed_canceled, num_kept_canceled],
-        labels=['Removed Canceled Rows', 'Kept Canceled Rows'],
-        autopct='%1.1f%%', startangle=90, colors=['red', 'orange'])
-plt.title('Breakdown of Removed vs. Kept Canceled Rows')
-plt.show()
-
-# Zero backers
-zero_backers_count = kickstarter[kickstarter['backers'] == 0].shape[0]
-one_or_more_backers_count = kickstarter[kickstarter['backers'] >= 1].shape[0]
-
-labels = ['Zero Backers', '1+ Backers']
-sizes = [zero_backers_count, one_or_more_backers_count]
-colors = ['red', 'green']
-
-plt.figure(figsize=(6, 6))
-plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
-plt.title('Distribution of Projects: Zero Backers vs 1+ Backers')
-plt.show()
-
-
-# %%
-# Histogram of Backers
-backers = kickstarter['backers']
-
-Q1 = backers.quantile(0.25)
-Q3 = backers.quantile(0.75)
-IQR = Q3 - Q1
-filtered_backers = backers[(backers <= Q3 + 1.5 * IQR)]
-
-num_outliers_removed = len(backers) - len(filtered_backers)
-
-plt.hist(filtered_backers, bins=50, edgecolor='black')
-plt.title('Histogram of Backers (Outliers Removed)')
-plt.xlabel('Number of Backers')
-plt.ylabel('Frequency')
-plt.show()
-
-print(f"Number of outliers removed: {num_outliers_removed}")
+# Training and the testing accuracy show that the model is not likely to be overfit and does a decent job at predicting campaign success or failure for US Kickstarter campaigns. 
